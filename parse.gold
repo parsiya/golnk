@@ -1,0 +1,16 @@
+package golnk
+
+import (
+	"io"
+)
+
+const (
+	header = []byte()
+)
+
+// Parse, parses an lnk file and returns its properties.
+func Parse(r io.Reader) string {
+
+	// Header
+
+}
