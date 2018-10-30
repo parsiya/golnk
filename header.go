@@ -5,8 +5,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"syscall"
-	"time"
 )
 
 const (
@@ -15,6 +13,9 @@ const (
 	// Endian-ness does not make a difference.
 	classID = "0114020000000000c000000000000046"
 )
+
+// From the docs:
+// "Multi-byte data values in the Shell Link Binary File Format are stored in little-endian format."
 
 // ReadFile reads an lnk file and populates the header, data, and size fields.
 
@@ -55,59 +56,57 @@ func Header(b []byte) (head ShellLinkHeader, err error) {
 	// Parse LinkFlags.
 	// Convert the next uint32 to bites, go over the bits and add the flags.
 	var flags []string
-	var lf uint32 // We will lose zeros by using uint32 but we do not care about them.
+	// We will lose preceeding zeros by using uint32 but we do not care about them.
+	var lf uint32
 	err = binary.Read(buf, binary.LittleEndian, &lf)
 	if err != nil {
-		return head, fmt.Errorf("lnk.header: error reading LinkFlags - %s", err.Error())
+		return head, fmt.Errorf("lnk.header: reading LinkFlags - %s", err.Error())
 	}
-	// Convert to bits. TODO: Better way than Sprintf %b? Really need a better way, this looks messy.
-	linkFlagBits := fmt.Sprintf("%b", lf)
-	for bitIndex := 0; bitIndex < len(linkFlagBits); bitIndex++ {
-		// Because we are converting to string, we need to compare the byte
-		// to 0x31 which is 1 in ASCII-Hex.
-		if linkFlagBits[bitIndex] == 0x31 {
-			flags = append(flags, linkFlags[bitIndex])
-		}
-	}
+	flags = matchFlag(lf, linkFlags)
 	head.LinkFlags = flags
-	// fmt.Println(flags)
+	fmt.Println(flags)
 
-	// CreationTime - AccessTime - WriteTime
-	// var crTime, acTime, wrTime uint64
-	// err = binary.Read(buf, binary.LittleEndian, &crTime)
-	// if err != nil {
-	// 	return head, fmt.Errorf("lnk.header: error reading CreationTime - %s", err.Error())
-	// }
-	// err = binary.Read(buf, binary.LittleEndian, &acTime)
-	// if err != nil {
-	// 	return head, fmt.Errorf("lnk.header: error reading AccessTime - %s", err.Error())
-	// }
-	// err = binary.Read(buf, binary.LittleEndian, &wrTime)
-	// if err != nil {
-	// 	return head, fmt.Errorf("lnk.header: error reading WriteTime - %s", err.Error())
-	// }
-
-	// fmt.Printf("%x\n", crTime)
-	// fmt.Printf("%v\n", crTime)
-	// t := time.Unix(0, (int64(crTime)/10000000)-11644473600)
-	// fmt.Println(t.String())
-
-	var crTime [16]byte
-	err = binary.Read(buf, binary.LittleEndian, &crTime)
+	// Parse FileAttributes.
+	var attribs uint32
+	// Same as before, read BigEndian.
+	err = binary.Read(buf, binary.LittleEndian, &attribs)
 	if err != nil {
-		return head, fmt.Errorf("lnk.header: error reading CreationTime - %s", err.Error())
+		return head, fmt.Errorf("lnk.header: reading FileAttributes - %s", err.Error())
+	}
+	fmt.Println(matchFlag(attribs, fileAttributesFlags))
+
+	// Convert timestamps from Windows Filetime to time.Time.
+	var crTime, wrTime, acTime [8]byte
+	err = binary.Read(buf, binary.BigEndian, &crTime)
+	if err != nil {
+		return head, fmt.Errorf("lnk.header: reading CreationTime - %s", err.Error())
+	}
+	head.CreationTime = toTime(crTime)
+
+	err = binary.Read(buf, binary.BigEndian, &wrTime)
+	if err != nil {
+		return head, fmt.Errorf("lnk.header: reading WriteTime - %s", err.Error())
+	}
+	head.WriteTime = toTime(wrTime)
+
+	err = binary.Read(buf, binary.BigEndian, &acTime)
+	if err != nil {
+		return head, fmt.Errorf("lnk.header: reading AccessTime - %s", err.Error())
+	}
+	head.AccessTime = toTime(acTime)
+
+	fmt.Println(head.CreationTime)
+	fmt.Println(head.WriteTime)
+	fmt.Println(head.AccessTime)
+
+	// var size uint32
+	var size [4]byte
+	err = binary.Read(buf, binary.LittleEndian, &size)
+	if err != nil {
+		return head, fmt.Errorf("lnk.header: reading target file size - %s", err.Error())
 	}
 
-	// https://golang.org/src/syscall/types_windows.go#L344 to the rescue.
-	// TODO: Convert to function.
-	// TODO: Document this somewhere.
-	ft := &syscall.Filetime{
-		LowDateTime:  binary.LittleEndian.Uint32(crTime[:8]),
-		HighDateTime: binary.LittleEndian.Uint32(crTime[8:]),
-	}
-
-	t := time.Unix(0, ft.Nanoseconds()).Format("2006-01-02 15:04:05.999999 -07:00")
-	fmt.Println(t)
+	fmt.Printf("%b", size)
 
 	return head, err
 }

@@ -1,5 +1,9 @@
 package lnk
 
+import (
+	"time"
+)
+
 // File represents one lnk file.
 type File struct {
 	Data   []byte          // File content.
@@ -9,15 +13,16 @@ type File struct {
 
 // ShellLinkHeader represents the lnk header.
 type ShellLinkHeader struct {
-	Header       uint32   // Header size: should be 0x4c.
-	LinkCLSID    [16]byte // A class identifier, should be  00021401-0000-0000-C000-000000000046.
-	LinkFlags    []string // File attributes about link target, originally a uint32.
-	CreationTime uint64   // Creation time of link target in UTC. TODO: what format is this? Could be zero.
-	AccessTime   uint64   // Access time of link target. Could be zero.
-	WriteTime    uint64   // Write time  of link target. Could be zero.
-	FileSize     uint32   // Filesize of link target. If larger than capacity, it will have the LSB 32-bits of size.
-	IconIndex    int32    // 32-bit signed integer, the index of an icon within a given icon location. TODO: is it just a number to create the icon of the lnk file based on the target?
-	ShowCommand  uint32   // uint32 integer that is the expected windows state of the target after execution.
+	Header         uint32    // Header size: should be 0x4c.
+	LinkCLSID      [16]byte  // A class identifier, should be  00021401-0000-0000-C000-000000000046.
+	LinkFlags      []string  // Information about the file an optional sections in the file.
+	FileAttributes uint32    // File attributes about link target, originally a uint32.
+	CreationTime   time.Time // Creation time of link target in UTC. 16 bytes in file.
+	AccessTime     time.Time // Access time of link target. Could be zero. 16 bytes in file.
+	WriteTime      time.Time // Write time  of link target. Could be zero. 16 bytes in file.
+	FileSize       uint32    // Filesize of link target. If larger than capacity, it will have the LSB 32-bits of size.
+	IconIndex      int32     // 32-bit signed integer, the index of an icon within a given icon location. TODO: is it just a number to create the icon of the lnk file based on the target?
+	ShowCommand    uint32    // uint32 integer that is the expected windows state of the target after execution.
 	// Valid values:
 	// 0x00000001 - SW_SHOWNORMAL - The application is open and its window is open in a normal fashion.
 	// 0x00000003 - SW_SHOWMAXIMIZED - The application is open, and keyboard focus is given to the application, but its window is not shown.
