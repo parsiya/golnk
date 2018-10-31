@@ -6,13 +6,13 @@ import (
 )
 
 // ByteMask returns one of the four bytes from a uint32.
-func ByteMask(b uint32, n int) uint32 {
+func ByteMask(b uint16, n int) uint16 {
 	// Maybe we should not panic, hmm.
-	if n < 0 || n > 3 {
+	if n < 0 || n > 2 {
 		panic(fmt.Sprintf("invalid byte mask, got %d", n))
 	}
-	mask := uint32(0x000000FF) << uint32(n*8)
-	return (b & mask) >> uint32(n*8)
+	mask := uint16(0x000000FF) << uint16(n*8)
+	return (b & mask) >> uint16(n*8)
 }
 
 // ReadBytes reads n bytes from the slice starting from offset and

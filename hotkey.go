@@ -20,7 +20,7 @@ import (
 	0X03: ALT
 */
 // HotKey returns the string representation of the hotkey uint32.
-func HotKey(hotkey uint32) string {
+func HotKey(hotkey uint16) string {
 	var sb strings.Builder
 	lb := ByteMask(hotkey, 0) // first byte
 	hb := ByteMask(hotkey, 1) // second byte

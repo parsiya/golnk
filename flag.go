@@ -13,7 +13,7 @@ import (
 // bit string is the other way around.
 func matchFlag(flag uint32, flagText []string) []string {
 	// Convert to bits and then reverse.
-	flagBits := Reverse(fmt.Sprintf("%b", flag))
+	flagBits := reverse(fmt.Sprintf("%b", flag))
 	var fl []string
 	// If we have more bits than flags (something has gone wrong or the file is corrupted),
 	// then reduce the flagbits.
@@ -29,9 +29,9 @@ func matchFlag(flag uint32, flagText []string) []string {
 	return fl
 }
 
-// Reverse returns its argument string reversed rune-wise left to right.
+// reverse returns its argument string reversed rune-wise left to right.
 // Taken from https://github.com/golang/example/blob/master/stringutil/reverse.go.
-func Reverse(s string) string {
+func reverse(s string) string {
 	r := []rune(s)
 	for i, j := 0, len(r)-1; i < len(r)/2; i, j = i+1, j-1 {
 		r[i], r[j] = r[j], r[i]
