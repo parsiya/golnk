@@ -13,26 +13,20 @@ type File struct {
 
 // ShellLinkHeader represents the lnk header.
 type ShellLinkHeader struct {
-	Header         uint32    // Header size: should be 0x4c.
+	Magic          uint32    // Header size: should be 0x4c.
 	LinkCLSID      [16]byte  // A class identifier, should be  00021401-0000-0000-C000-000000000046.
 	LinkFlags      []string  // Information about the file an optional sections in the file.
-	FileAttributes uint32    // File attributes about link target, originally a uint32.
+	FileAttributes []string  // File attributes about link target, originally a uint32.
 	CreationTime   time.Time // Creation time of link target in UTC. 16 bytes in file.
 	AccessTime     time.Time // Access time of link target. Could be zero. 16 bytes in file.
 	WriteTime      time.Time // Write time  of link target. Could be zero. 16 bytes in file.
-	FileSize       uint32    // Filesize of link target. If larger than capacity, it will have the LSB 32-bits of size.
+	TargetFileSize uint32    // Filesize of link target. If larger than capacity, it will have the LSB 32-bits of size.
 	IconIndex      int32     // 32-bit signed integer, the index of an icon within a given icon location. TODO: is it just a number to create the icon of the lnk file based on the target?
-	ShowCommand    uint32    // uint32 integer that is the expected windows state of the target after execution.
-	// Valid values:
-	// 0x00000001 - SW_SHOWNORMAL - The application is open and its window is open in a normal fashion.
-	// 0x00000003 - SW_SHOWMAXIMIZED - The application is open, and keyboard focus is given to the application, but its window is not shown.
-	// 0x00000007 - SW_SHOWMINNOACTIVE - The application is open, but its window is not shown. It is not given the keyboard focus.
-	// All other values are SW_SHOWNORMAL.
-
-	HotKey    uint32 // HotKeyFlags structure to launch the target.
-	Reserved1 uint16 // Zero
-	Reserved2 uint32 // Zero
-	Reserved3 uint32 // Zero
+	ShowCommand    string    // Result of the uint32 integer: The expected windows state of the target after execution.
+	HotKey         string    // HotKeyFlags structure to launch the target. Original is uint32.
+	Reserved1      uint16    // Zero
+	Reserved2      uint32    // Zero
+	Reserved3      uint32    // Zero
 }
 
 // linkFlags defines what shell link structures are in the file.

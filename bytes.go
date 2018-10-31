@@ -52,3 +52,13 @@ func uint64Little(b []byte) uint64 {
 	}
 	return binary.LittleEndian.Uint64(b)
 }
+
+// uint32Str converts a uint32 to string using fmt.Sprint.
+func uint32Str(u uint32) string {
+	return fmt.Sprint(u)
+}
+
+// int32Str converts a int32 to string using fmt.Sprint.
+func int32Str(u int32) string {
+	return fmt.Sprint(u)
+}

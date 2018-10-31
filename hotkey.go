@@ -33,7 +33,7 @@ func HotKey(hotkey uint32) string {
 	case 0x04:
 		sb.WriteString("ALT")
 	default:
-		return ""
+		return "No Hotkey Set"
 	}
 
 	sb.WriteString("+")
@@ -48,7 +48,7 @@ func HotKey(hotkey uint32) string {
 	case lb == 0x91:
 		sb.WriteString("SCROLL LOCK")
 	default:
-		return ""
+		return "No Hotkey Set"
 	}
 	return sb.String()
 }

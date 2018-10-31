@@ -5,6 +5,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"strings"
+
+	"github.com/olekukonko/tablewriter"
 )
 
 const (
@@ -37,7 +40,7 @@ func Header(b []byte) (head ShellLinkHeader, err error) {
 	if magic != headerSize {
 		return head, fmt.Errorf("lnk.header: invalid magic string- got %x, want %s", magic, "0x4C")
 	}
-	head.Header = magic
+	head.Magic = magic
 
 	// Next 16 bytes should be 00021401-0000-0000-C000-000000000046.
 	// Read two uint64 and compare.
@@ -56,7 +59,7 @@ func Header(b []byte) (head ShellLinkHeader, err error) {
 	// Parse LinkFlags.
 	// Convert the next uint32 to bites, go over the bits and add the flags.
 	var flags []string
-	// We will lose preceeding zeros by using uint32 but we do not care about them.
+	// We will lose preceding zeros by using uint32 but we do not care about them.
 	var lf uint32
 	err = binary.Read(buf, binary.LittleEndian, &lf)
 	if err != nil {
@@ -64,7 +67,6 @@ func Header(b []byte) (head ShellLinkHeader, err error) {
 	}
 	flags = matchFlag(lf, linkFlags)
 	head.LinkFlags = flags
-	fmt.Println(flags)
 
 	// Parse FileAttributes.
 	var attribs uint32
@@ -73,45 +75,101 @@ func Header(b []byte) (head ShellLinkHeader, err error) {
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: reading FileAttributes - %s", err.Error())
 	}
-	fmt.Println(matchFlag(attribs, fileAttributesFlags))
+	head.FileAttributes = matchFlag(attribs, fileAttributesFlags)
 
 	// Convert timestamps from Windows Filetime to time.Time.
 	var crTime, wrTime, acTime [8]byte
-	err = binary.Read(buf, binary.BigEndian, &crTime)
+	err = binary.Read(buf, binary.LittleEndian, &crTime)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: reading CreationTime - %s", err.Error())
 	}
 	head.CreationTime = toTime(crTime)
 
-	err = binary.Read(buf, binary.BigEndian, &wrTime)
+	err = binary.Read(buf, binary.LittleEndian, &wrTime)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: reading WriteTime - %s", err.Error())
 	}
 	head.WriteTime = toTime(wrTime)
 
-	err = binary.Read(buf, binary.BigEndian, &acTime)
+	err = binary.Read(buf, binary.LittleEndian, &acTime)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: reading AccessTime - %s", err.Error())
 	}
 	head.AccessTime = toTime(acTime)
 
-	fmt.Println(head.CreationTime)
-	fmt.Println(head.WriteTime)
-	fmt.Println(head.AccessTime)
-
-	// var size uint32
-	var size [4]byte
+	// Target file size.
+	var size uint32
 	err = binary.Read(buf, binary.LittleEndian, &size)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: reading target file size - %s", err.Error())
 	}
+	head.TargetFileSize = size
 
-	fmt.Printf("%b", size)
+	// Icon index is a signed 32-bit integer.
+	var iconIndex int32
+	err = binary.Read(buf, binary.LittleEndian, &iconIndex)
+	if err != nil {
+		return head, fmt.Errorf("lnk.header: reading icon index - %s", err.Error())
+	}
+	head.IconIndex = iconIndex
+
+	// ShowCommand
+	var sw uint32
+	err = binary.Read(buf, binary.LittleEndian, &sw)
+	if err != nil {
+		return head, fmt.Errorf("lnk.header: reading showcommand - %s", err.Error())
+	}
+	head.ShowCommand = showCommand(sw)
+
+	// Hotkey.
+	var hk uint32
+	err = binary.Read(buf, binary.LittleEndian, &hk)
+	if err != nil {
+		return head, fmt.Errorf("lnk.header: reading hotkey - %s", err.Error())
+	}
+	head.HotKey = HotKey(hk)
+
+	// The rest should be 10-bytes of zeroes.
+	binary.Read(buf, binary.LittleEndian, &head.Reserved1)
+	binary.Read(buf, binary.LittleEndian, &head.Reserved2)
+	binary.Read(buf, binary.LittleEndian, &head.Reserved3)
 
 	return head, err
 }
 
-// // timeFromWinToUnix converts a Windows style timestamp to Unix.
-// func timeFromWinToUnix(t uint64) t {
+// String prints the ShellLinkHeader in a nice looking table.
+func (h ShellLinkHeader) String() string {
+	var sb, flags, attribs strings.Builder
 
-// }
+	// Append all flags.
+	for _, fl := range h.LinkFlags {
+		flags.WriteString(fl)
+		flags.WriteString("\n")
+	}
+
+	// Append all file attributes.
+	for _, at := range h.FileAttributes {
+		attribs.WriteString(at)
+		attribs.WriteString("\n")
+	}
+
+	table := tablewriter.NewWriter(&sb)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetRowLine(true)
+
+	table.SetHeader([]string{"ShellLinkHeader Field", "Value"})
+
+	table.Append([]string{"Magic", uint32Str(h.Magic)})
+	table.Append([]string{"LinkCLSID", hex.EncodeToString(h.LinkCLSID[:])})
+	table.Append([]string{"LinkFlags", flags.String()})
+	table.Append([]string{"FileAttributes", attribs.String()})
+	table.Append([]string{"CreationTime", h.CreationTime.String()})
+	table.Append([]string{"AccessTime", h.AccessTime.String()})
+	table.Append([]string{"WriteTime", h.WriteTime.String()})
+	table.Append([]string{"TargetFileSize", uint32Str(h.TargetFileSize)})
+	table.Append([]string{"IconIndex", int32Str(h.IconIndex)})
+	table.Append([]string{"HotKey", h.HotKey})
+	table.Render()
+
+	return sb.String()
+}
