@@ -27,11 +27,18 @@ func main() {
 	}
 	_ = h
 
-	// fmt.Println(h)
+	// fmt.Println(lnk.StructToJSON(h, true))
 
 	li, err := lnk.LinkTarget(fi)
 	if err != nil {
 		panic(err)
 	}
 	_ = li
+	// fmt.Println(lnk.StructToJSON(li, true))
+
+	_, err = lnk.LinkInfo(fi)
+	if err != nil {
+		panic(err)
+	}
+
 }

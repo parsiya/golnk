@@ -1,18 +1,28 @@
 package lnk
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 )
 
-// ByteMask returns one of the four bytes from a uint32.
-func ByteMask(b uint16, n int) uint16 {
+// byteMaskuint16 returns one of the two bytes from a uint16.
+func byteMaskuint16(b uint16, n int) uint16 {
 	// Maybe we should not panic, hmm.
 	if n < 0 || n > 2 {
 		panic(fmt.Sprintf("invalid byte mask, got %d", n))
 	}
 	mask := uint16(0x000000FF) << uint16(n*8)
 	return (b & mask) >> uint16(n*8)
+}
+
+// bitMaskuint32 returns one of the 32-bits from a uint32.
+// Returns true for 1 and false for 0.
+func bitMaskuint32(b uint32, n int) bool {
+	if n < 0 || n > 31 {
+		panic(fmt.Sprintf("invalid bit number, got %d", n))
+	}
+	return ((b >> uint(n)) & 1) == 1
 }
 
 // ReadBytes reads n bytes from the slice starting from offset and
@@ -71,4 +81,14 @@ func uint32Str(u uint32) string {
 // int32Str converts an int32 to string using fmt.Sprint.
 func int32Str(u int32) string {
 	return fmt.Sprint(u)
+}
+
+// uint32Byte converts a uint32 to a []byte.
+func uint32Byte(u uint32) []byte {
+	var buf bytes.Buffer
+	err := binary.Write(&buf, binary.LittleEndian, u)
+	if err != nil {
+		panic(err)
+	}
+	return buf.Bytes()
 }

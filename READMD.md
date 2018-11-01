@@ -1,6 +1,7 @@
 # golnk - lnk Parser for Go
 
 Reference: https://msdn.microsoft.com/en-us/library/dd871305.aspx
+Version 5.0: https://winprotocoldoc.blob.core.windows.net/productionwindowsarchives/MS-SHLLINK/[MS-SHLLINK].pdf
 
 # Structure
 
@@ -25,3 +26,4 @@ Little-endian, remember.
 * IconIndex (4 bytes): A 32-bit signed integer that specifies the index of an icon within a given icon location.
 * ShowCommand (4 bytes): A 32-bit unsigned integer that specifies the expected window state of an application launched by the link. This value SHOULD be one of the following.
 
+"Unless otherwise specified, the value contained by size fields includes the size of size field itself."

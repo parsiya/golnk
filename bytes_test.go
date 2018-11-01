@@ -87,3 +87,71 @@ func Test_uint64Little(t *testing.T) {
 		})
 	}
 }
+
+func Test_byteMaskuint16(t *testing.T) {
+	type args struct {
+		b uint16
+		n int
+	}
+	tests := []struct {
+		name string
+		args args
+		want uint16
+	}{
+		{"highbyte", args{uint16(0xAABB), 1}, 0xAA},
+		{"lowbyte", args{uint16(0xAABB), 0}, 0xBB},
+		{"highbyte-zero", args{uint16(0x00BB), 1}, 0x00},
+		{"lowbyte-zero", args{uint16(0xAA00), 0}, 0x00},
+		{"byte-0", args{b: 0xBBAA, n: 0}, 0x00AA},
+		{"byte-1", args{b: 0xBBAA, n: 1}, 0x00BB},
+		{"invalid", args{b: 0x0201, n: 0}, 0x0001},
+		{"byte-1", args{b: 0x0201, n: 1}, 0x0002},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := byteMaskuint16(tt.args.b, tt.args.n); got != tt.want {
+				t.Errorf("byteMaskuint16() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_bitMaskuint32(t *testing.T) {
+	// 255 is 1111 1111
+	u255 := uint32(255)
+	// 0 is 0000 0000
+	u0 := uint32(0)
+	type args struct {
+		b uint32
+		n int
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"bit0-255", args{u255, 0}, true},
+		{"bit1-255", args{u255, 0}, true},
+		{"bit2-255", args{u255, 0}, true},
+		{"bit3-255", args{u255, 0}, true},
+		{"bit4-255", args{u255, 0}, true},
+		{"bit5-255", args{u255, 0}, true},
+		{"bit6-255", args{u255, 0}, true},
+		{"bit7-255", args{u255, 0}, true},
+		{"bit0-0", args{u0, 0}, false},
+		{"bit1-0", args{u0, 0}, false},
+		{"bit2-0", args{u0, 0}, false},
+		{"bit3-0", args{u0, 0}, false},
+		{"bit4-0", args{u0, 0}, false},
+		{"bit5-0", args{u0, 0}, false},
+		{"bit6-0", args{u0, 0}, false},
+		{"bit7-0", args{u0, 0}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := bitMaskuint32(tt.args.b, tt.args.n); got != tt.want {
+				t.Errorf("bitMaskuint32() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

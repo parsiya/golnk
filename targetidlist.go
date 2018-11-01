@@ -33,7 +33,7 @@ type IDList struct {
 // to the location in the target namespace of the preceding ItemIDs. This data
 // uniquely identifies the items in that part of the namespace."
 type ItemID struct {
-	// Size of ItemID INCLUDING the size. Why?
+	// Size of ItemID INCLUDING the size.
 	Size uint16
 	// Data length is size-2 bytes.
 	Data []byte
@@ -49,7 +49,7 @@ func LinkTarget(r io.Reader) (li LinkTargetIDList, err error) {
 	if err != nil {
 		return li, fmt.Errorf("lnk.LinkTarget: read IDListSize - %s", err.Error())
 	}
-	fmt.Println(li.IDListSize)
+	// fmt.Println(li.IDListSize)
 
 	// Instead of reading IDListSize bytes, we read uint16 which is length, if
 	// this item is zero, we have reached TerminalID which is 00 00. If not, read
@@ -88,7 +88,7 @@ func LinkTarget(r io.Reader) (li LinkTargetIDList, err error) {
 		// Check if we have reach the TerminalID
 		if itemSize == 0 {
 			idList.TerminalID = itemSize
-			fmt.Println("Reached TerminalID")
+			// fmt.Println("Reached TerminalID")
 			break
 		}
 		// If not, read those many bytes-2.
@@ -100,13 +100,17 @@ func LinkTarget(r io.Reader) (li LinkTargetIDList, err error) {
 		items = append(items, ItemID{Size: itemSize, Data: itemData})
 	}
 
-	fmt.Println(len(items))
+	// fmt.Println(len(items))
 
-	for _, it := range items {
-		fmt.Println("Item Size:", it.Size)
-		fmt.Println("Item Data:", string(it.Data))
-		fmt.Println("--------------------")
-	}
+	// for _, it := range items {
+	// 	fmt.Printf("Item Size: %d bytes.\n", it.Size)
+	// 	fmt.Println("Item Data:", string(it.Data))
+	// 	fmt.Println("--------------------")
+	// }
+
+	idList.ItemIDList = items
+
+	li.List = idList
 
 	return li, err
 }
