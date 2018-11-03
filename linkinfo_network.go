@@ -1,9 +1,15 @@
 package lnk
 
+import (
+	"encoding/hex"
+	"fmt"
+	"io"
+)
+
 // CommonNetworkRelativeLink (section 2.3.2)
 // Information about the network location where a link target is stored,
 type CommonNetworkRelativeLink struct {
-	Size uint32 // Includes this?
+	Size uint32
 
 	// Only the first two bits are used. commonNetworkRelativeLinkFlags
 	CommonNetworkRelativeLinkFlags uint32
@@ -100,4 +106,24 @@ func networkProviderType(index uint32) string {
 		return val
 	}
 	return ""
+}
+
+// CommonNetwork reads the section data and populates a CommonNetworkRelativeLink.
+// Section 2.3.2 in docs.
+func CommonNetwork(r io.Reader) (c CommonNetworkRelativeLink, err error) {
+	// Read the section.
+	sectionData, sectionReader, sectionSize, err := readSection(r, 4)
+	if err != nil {
+		return c, fmt.Errorf("golnk.CommonNetwork: read CommonNetwork section - %s", err.Error())
+	}
+	c.Size = uint32(sectionSize)
+
+	fmt.Printf("Read section CommonNetwork. %d bytes.\n", sectionSize)
+
+	fmt.Println("------")
+	fmt.Println(hex.Dump(sectionData))
+
+	_ = sectionReader
+
+	return c, err
 }

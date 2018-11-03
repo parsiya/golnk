@@ -14,7 +14,7 @@ type LinkInfoSection struct {
 	// LinkInfo header section start.
 
 	// Size of the LinkInfo structure. Includes these four bytes.
-	LinkInfoSize uint32
+	Size uint32
 
 	// Size of LinkInfo header section.
 	// If == 0x1c => Offsets to optional fields are not specified.
@@ -55,7 +55,7 @@ type LinkInfoSection struct {
 	// LinkInfo header section end. At least I think.
 
 	// VolumeID present if VolumeIDAndLocalBasePath is set.
-	VolID VolumeID
+	VolID VolID
 
 	// Null-terminated string present if VolumeIDAndLocalBasePath is set.
 	// Combine with CommonPathSuffix to get the full path to target.
@@ -90,45 +90,18 @@ var linkInfoFlags = []string{
 
 // LinkInfo reads the io.Reader and returns a populated LinkInfoSection.
 func LinkInfo(r io.Reader) (info LinkInfoSection, err error) {
-	// Read size.
-	err = binary.Read(r, binary.LittleEndian, &info.LinkInfoSize)
+
+	// Parse section.
+	sectionData, sectionReader, sectionSize, err := readSection(r, 4)
 	if err != nil {
-		return info, fmt.Errorf("lnk.LinkInfo: read LinkInfoSize - %s", err.Error())
+		return info, fmt.Errorf("lnk.LinkInfo: section - %s", err.Error())
 	}
-
-	// This time we have offsets, so it's better to read the complete LinkInfo
-	// and store it in a []byte for easy access to offset.
-	// We must read (LinkInfoSize-4) bytes from io.Reader and append it to
-	// LinkInfoSize to get the complete []byte.
-
-	fmt.Printf("LinkInfoSize: %x\n", info.LinkInfoSize)
-
-	tempInfo := make([]byte, info.LinkInfoSize)
-
-	// Does order matter here? It seems like order does not matter when reading
-	// byte slices or arrays. Let's go with BigEndian and see what happens. Doesn't matter.
-	err = binary.Read(r, binary.LittleEndian, tempInfo)
-	if err != nil {
-		return info, fmt.Errorf("lnk.LinkInfo: read LinkInfo - %s", err.Error())
-	}
-
-	linkInfo := uint32Byte(info.LinkInfoSize)
-	linkInfo = append(linkInfo, tempInfo...)
-
-	fmt.Printf("linkInfo:\n%s\n", hex.Dump(linkInfo))
-
-	// Convert it into a reader to read the header, then we can use the []byte
-	// for reading offsets.
-	buf := bytes.NewReader(linkInfo)
-
-	// Read the first four size bytes again. This is to move the reader forward.
-	err = binary.Read(buf, binary.LittleEndian, &info.LinkInfoSize)
-	if err != nil {
-		return info, fmt.Errorf("lnk.LinkInfo: read LinkInfoSize-2 - %s", err.Error())
-	}
+	info.Size = uint32(sectionSize)
+	fmt.Println("info.Size", info.Size)
+	fmt.Println(hex.Dump(sectionData))
 
 	// Read LinkInfoHeaderSize.
-	err = binary.Read(buf, binary.LittleEndian, &info.LinkInfoHeaderSize)
+	err = binary.Read(sectionReader, binary.LittleEndian, &info.LinkInfoHeaderSize)
 	if err != nil {
 		return info, fmt.Errorf("lnk.LinkInfo: read LinkInfoHeaderSize - %s", err.Error())
 	}
@@ -143,10 +116,10 @@ func LinkInfo(r io.Reader) (info LinkInfoSection, err error) {
 		optionalHeaderFields = true
 	}
 
-	fmt.Printf("LinkInfoHeaderSize is %x so setting optionalHeaderFields to %v.\n", info.LinkInfoHeaderSize, optionalHeaderFields)
+	fmt.Printf("LinkInfoHeaderSize is %x, setting optionalHeaderFields to %v.\n", info.LinkInfoHeaderSize, optionalHeaderFields)
 
 	// Read LinkInfoFlags.
-	err = binary.Read(buf, binary.LittleEndian, &info.LinkInfoFlags)
+	err = binary.Read(sectionReader, binary.LittleEndian, &info.LinkInfoFlags)
 	if err != nil {
 		return info, fmt.Errorf("lnk.LinkInfo: read LinkInfoFlags - %s", err.Error())
 	}
@@ -161,12 +134,106 @@ func LinkInfo(r io.Reader) (info LinkInfoSection, err error) {
 
 	fmt.Println("LinkInfoFlagsStr", info.LinkInfoFlagsStr)
 
-	// If VolumeIDAndLocalBasePath is set then VolumeIDOffset is set.
+	// Read VolumeIDOffset, LocalBasePathOffset, CommonNetworkRelativeLinkOffset
+	// and CommonPathSuffixOffset because they are not optional. Then we will
+	// act based on LinkInfoFlags.
+
+	// Read VolumeIDOffset.
+	err = binary.Read(sectionReader, binary.LittleEndian, &info.VolumeIDOffset)
+	if err != nil {
+		return info, fmt.Errorf("lnk.LinkInfo: read VolumeIDOffset - %s", err.Error())
+	}
+	fmt.Printf("VolumeIDOffset : %v\n", info.VolumeIDOffset)
+
+	// Read LocalBasePathOffset.
+	err = binary.Read(sectionReader, binary.LittleEndian, &info.LocalBasePathOffset)
+	if err != nil {
+		return info, fmt.Errorf("lnk.LinkInfo: read LocalBasePathOffset - %s", err.Error())
+	}
+	fmt.Println("LocalBasePathOffset:", info.LocalBasePathOffset)
+
+	// Read CommonNetworkRelativeLinkOffset.
+	err = binary.Read(sectionReader, binary.LittleEndian, &info.CommonNetworkRelativeLinkOffset)
+	if err != nil {
+		return info, fmt.Errorf("lnk.LinkInfo: read CommonNetworkRelativeLinkOffset - %s", err.Error())
+	}
+	fmt.Println("CommonNetworkRelativeLinkOffset:", info.CommonNetworkRelativeLinkOffset)
+
+	// Read CommonPathSuffixOffset.
+	err = binary.Read(sectionReader, binary.LittleEndian, &info.CommonPathSuffixOffset)
+	if err != nil {
+		return info, fmt.Errorf("lnk.LinkInfo: read CommonPathSuffixOffset - %s", err.Error())
+	}
+	fmt.Println("CommonPathSuffixOffset:", info.CommonPathSuffixOffset)
+
+	// If VolumeIDAndLocalBasePath is set then VolumeIDOffset and LocalBasePathOffset
+	// are both set.
 	if bitMaskuint32(info.LinkInfoFlags, 0) {
-		// Read VolumeIDOffset.
-		err = binary.Read(buf, binary.LittleEndian, &info.VolumeIDOffset)
+		// Populate VolumeID based on offset from linkInfo.
+		if info.VolumeIDOffset > info.Size {
+			return info,
+				fmt.Errorf("lnk.LinkInfo: VolumeIDOffset %d larger than LinkInfo size %d",
+					info.VolumeIDOffset, info.Size)
+		}
+
+		// Read VolumeID struct from offset.
+		// Make an io.Reader for bytes starting from that offset.
+		vbuf := bytes.NewReader(sectionData[info.VolumeIDOffset:])
+		vol, err := VolumeID(vbuf)
 		if err != nil {
-			return info, fmt.Errorf("lnk.LinkInfo: read VolumeIDOffset - %s", err.Error())
+			return info, fmt.Errorf("lnk.LinkInfo: parse VolumeID - %s", err.Error())
+		}
+		info.VolID = vol
+		fmt.Println(StructToJSON(info.VolID, true))
+
+		// Read LocalBasePath which is a null-terminated string.
+		info.LocalBasePath = readString(sectionData[info.LocalBasePathOffset:])
+		fmt.Println("LocalBasePath", info.LocalBasePath)
+
+		// LocalBasePathOffsetUnicode and CommonPathSuffixOffsetUnicode only
+		// exist if LinkInfoHeaderSize >= 0x24 and are not zero if
+		// VolumeIDAndLocalBasePath is set.
+		// TODO: Find lnk files that test this.
+		if info.LinkInfoHeaderSize >= 0x24 {
+			// Read LocalBasePathOffsetUnicode.
+			err = binary.Read(sectionReader, binary.LittleEndian, &info.LocalBasePathOffsetUnicode)
+			if err != nil {
+				return info, fmt.Errorf("lnk.LinkInfo: read LocalBasePathOffsetUnicode - %s", err.Error())
+			}
+			fmt.Println("LocalBasePathOffsetUnicode:", info.LocalBasePathOffsetUnicode)
+
+			// If we have reached here, it's non-zero, so try and read it, if the
+			// offset is not larger than section.
+			if uint32(sectionSize) > info.LocalBasePathOffsetUnicode && info.LocalBasePathOffsetUnicode != 0x00 {
+				// Read unicode string.
+				info.LocalBasePathUnicode = readUnicodeString(sectionData[info.LocalBasePathOffsetUnicode:])
+			}
+			fmt.Println("LocalBasePathUnicode:", info.LocalBasePathUnicode)
+
+			// Read CommonPathSuffixOffsetUnicode.
+			err = binary.Read(sectionReader, binary.LittleEndian, &info.CommonPathSuffixOffsetUnicode)
+			if err != nil {
+				return info, fmt.Errorf("lnk.LinkInfo: read CommonPathSuffixOffsetUnicode - %s", err.Error())
+			}
+			fmt.Println("CommonPathSuffixOffsetUnicode:", info.CommonPathSuffixOffsetUnicode)
+
+			// Read it.
+			if uint32(sectionSize) > info.CommonPathSuffixOffsetUnicode && info.CommonPathSuffixOffsetUnicode != 0x00 {
+				// Read unicode string.
+				info.CommonPathSuffixUnicode = readString(sectionData[info.CommonPathSuffixOffsetUnicode:])
+			}
+			fmt.Println("CommonPathSuffixUnicode:", info.CommonPathSuffixUnicode)
+		}
+
+		// Read and parse CommonNetworkRelativeLink, if it exists.
+		// TODO: Find lnks that have this to test.
+		if info.CommonNetworkRelativeLinkOffset != 0x00 {
+			// Create a reader from CommonNetworkRelativeLink data.
+			nbuf := bytes.NewReader(sectionData[info.CommonNetworkRelativeLinkOffset:])
+			// And parse it.
+			fmt.Println("dddddd", nbuf)
+			c, _ := CommonNetwork(nbuf)
+			_ = c
 		}
 	}
 

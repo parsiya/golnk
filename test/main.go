@@ -8,7 +8,7 @@ import (
 
 func main() {
 
-	fi, err := os.Open("test.lnk")
+	fi, err := os.Open("remote.directory.xp.test")
 	if err != nil {
 		panic(err)
 	}

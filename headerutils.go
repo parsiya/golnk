@@ -82,7 +82,7 @@ func HotKey(hotkey uint16) string {
 	return sb.String()
 }
 
-// toTime converts an 8-byte Windows Filetime to time.Time. If the first
+// toTime converts an 8-byte Windows Filetime to time.Time.
 func toTime(t [8]byte) time.Time {
 	// https://golang.org/src/syscall/types_windows.go#L344 to the rescue.
 	ft := &syscall.Filetime{

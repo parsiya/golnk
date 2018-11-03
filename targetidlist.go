@@ -56,25 +56,6 @@ func LinkTarget(r io.Reader) (li LinkTargetIDList, err error) {
 	// that many bytes. If the file format is wrong, we may bleed into the next
 	// section, but then again the IDListSize might be wrong too.
 
-	// listData := make([]byte, li.IDListSize-2)
-	// err = binary.Read(r, binary.LittleEndian, &listData)
-	// if err != nil {
-	// 	return li, fmt.Errorf("lnk.LinkTarget: read IDList bytes - %s", err.Error())
-	// }
-	// fmt.Println(len(listData))
-	// // Create an io.Reader from buffer.
-	// buf := bytes.NewReader(listData[:])
-
-	// 	// Populate TerminalID by reading the last two bytes.
-	// 	err = binary.Read(r, binary.LittleEndian, &idList.TerminalID)
-	// 	if err != nil {
-	// 		return li, fmt.Errorf("lnk.LinkTarget: read IDList.TerminalID - %s", err.Error())
-	// 	}
-	// 	if idList.TerminalID != 0x00 {
-	// 		return li,
-	// 			fmt.Errorf("lnk.LinkTarget: TerminalID not zero - got %s", uint16Str(idList.TerminalID))
-	// 	}
-
 	var idList IDList
 
 	// Start populating ItemIDs.
