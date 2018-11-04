@@ -1,7 +1,7 @@
 package lnk
 
 import (
-	"encoding/hex"
+	"encoding/binary"
 	"fmt"
 	"io"
 )
@@ -14,8 +14,11 @@ type CommonNetworkRelativeLink struct {
 	// Only the first two bits are used. commonNetworkRelativeLinkFlags
 	CommonNetworkRelativeLinkFlags uint32
 
+	// String version of the flag.
+	CommonNetworkRelativeLinkFlagsStr []string
+
 	// Offset of NetName field from start of structure.
-	// If value >= 0x14, then NetNameOffsetUnicode must not exist.
+	// If value > 0x14, then NetNameOffsetUnicode must not exist.
 	NetNameOffset uint32
 
 	// Offset of DeviceName field from start of structure.
@@ -23,12 +26,13 @@ type CommonNetworkRelativeLink struct {
 
 	// Type of NetworkProvider. See networkProviderType for table.
 	// If ValidNetType is not set, ignore this.
-	NetworkProviderType uint32
+	// NetworkProviderType uint32
+	NetworkProviderType string // A uint32 in file, maps to networkProviderType.
 
-	// Optional offset of NetNameUnicode. Must not exist if NetNameOffset >= 0x14.
+	// Optional offset of NetNameUnicode. Must not exist if NetNameOffset > 0x14.
 	NetNameOffsetUnicode uint32
 
-	// Optional value of DeviceNameUnicode. Must not exist if NetNameOffset >= 0x14.
+	// Optional value of DeviceNameUnicode. Must not exist if NetNameOffset > 0x14.
 	DeviceNameOffsetUnicode uint32
 
 	// Server share path (e.g. \\server\share). Null-terminated string.
@@ -37,10 +41,10 @@ type CommonNetworkRelativeLink struct {
 	// Device name like drive letter. Null-terminated string.
 	DeviceName string
 
-	// Unicode string. Must not exist if NetNameOffset >= 0x14.
+	// Unicode string. Must not exist if NetNameOffset > 0x14.
 	NetNameUnicode string
 
-	// Unicode string. Must not exist if NetNameOffset >= 0x14.
+	// Unicode string. Must not exist if NetNameOffset > 0x14.
 	DeviceNameUnicode string
 }
 
@@ -105,7 +109,8 @@ func networkProviderType(index uint32) string {
 	if exists {
 		return val
 	}
-	return ""
+	// If not found, return the hexencoded string.
+	return "0x" + uint32StrHex(index)
 }
 
 // CommonNetwork reads the section data and populates a CommonNetworkRelativeLink.
@@ -118,12 +123,77 @@ func CommonNetwork(r io.Reader) (c CommonNetworkRelativeLink, err error) {
 	}
 	c.Size = uint32(sectionSize)
 
-	fmt.Printf("Read section CommonNetwork. %d bytes.\n", sectionSize)
+	// fmt.Println("------")
 
-	fmt.Println("------")
-	fmt.Println(hex.Dump(sectionData))
+	// fmt.Printf("Read section CommonNetwork. %d bytes.\n", sectionSize)
 
-	_ = sectionReader
+	// fmt.Println(hex.Dump(sectionData))
 
+	// Read CommonNetworkRelativeLinkFlags.
+	err = binary.Read(sectionReader, binary.LittleEndian, &c.CommonNetworkRelativeLinkFlags)
+	if err != nil {
+		return c, fmt.Errorf("golnk.CommonNetwork: read CommonNetworkRelativeLinkFlags - %s", err.Error())
+	}
+	// fmt.Println("CommonNetworkRelativeLinkFlags", c.CommonNetworkRelativeLinkFlags)
+
+	// Parse the flag.
+	for bitIndex := 0; bitIndex < len(commonNetworkRelativeLinkFlags); bitIndex++ {
+		if bitMaskuint32(c.CommonNetworkRelativeLinkFlags, bitIndex) {
+			c.CommonNetworkRelativeLinkFlagsStr =
+				append(c.CommonNetworkRelativeLinkFlagsStr, commonNetworkRelativeLinkFlags[bitIndex])
+		}
+	}
+	// fmt.Println("c.CommonNetworkRelativeLinkFlagsStr", c.CommonNetworkRelativeLinkFlagsStr)
+
+	// Read NetNameOffset.
+	err = binary.Read(sectionReader, binary.LittleEndian, &c.NetNameOffset)
+	if err != nil {
+		return c, fmt.Errorf("golnk.CommonNetwork: read NetNameOffset - %s", err.Error())
+	}
+	// fmt.Println("NetNameOffset", c.NetNameOffset)
+
+	// Read DeviceNameOffset.
+	err = binary.Read(sectionReader, binary.LittleEndian, &c.DeviceNameOffset)
+	if err != nil {
+		return c, fmt.Errorf("golnk.CommonNetwork: read DeviceNameOffset - %s", err.Error())
+	}
+	// fmt.Println("DeviceNameOffset", c.DeviceNameOffset)
+
+	// Read NetworkProviderType.
+	var nType uint32
+	err = binary.Read(sectionReader, binary.LittleEndian, &nType)
+	if err != nil {
+		return c, fmt.Errorf("golnk.CommonNetwork: read NetworkProviderType - %s", err.Error())
+	}
+	// fmt.Println("nType", nType)
+	// fmt.Printf("%x\n", nType)
+
+	// Map nType to networkProviderType.
+	c.NetworkProviderType = networkProviderType(nType)
+	// fmt.Println("networkProviderType", c.NetworkProviderType)
+
+	// If value of NetNameOffset field > 0x14, two optional fields are present:
+	// NetNameOffsetUnicode - uint32
+	// DeviceNameOffsetUnicode - uint32
+	if c.NetNameOffset > 0x14 {
+		// Read NetNameOffsetUnicode.
+		err = binary.Read(sectionReader, binary.LittleEndian, &c.NetNameOffsetUnicode)
+		if err != nil {
+			return c, fmt.Errorf("golnk.CommonNetwork: read NetNameOffsetUnicode - %s", err.Error())
+		}
+		// fmt.Println("NetNameOffsetUnicode", c.NetNameOffsetUnicode)
+
+		// Read DeviceNameOffsetUnicode.
+		err = binary.Read(sectionReader, binary.LittleEndian, &c.DeviceNameOffsetUnicode)
+		if err != nil {
+			return c, fmt.Errorf("golnk.CommonNetwork: read DeviceNameOffsetUnicode - %s", err.Error())
+		}
+		// fmt.Println("DeviceNameOffsetUnicode", c.DeviceNameOffsetUnicode)
+	} else {
+		// fmt.Printf("NetNameOffset 0x%x smaller than or equal to 0x14, skipping Unicode fields.\n", c.NetNameOffset)
+		// Read NetName from NetNameOffset as a null-terminated string.
+		c.NetName = readString(sectionData[c.NetNameOffset:])
+		// fmt.Println("NetName", c.NetName)
+	}
 	return c, err
 }

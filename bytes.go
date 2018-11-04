@@ -134,6 +134,35 @@ func readUnicodeString(data []byte) string {
 	return string(data[:i])
 }
 
+// readStringData reads a uint16 as size and then reads that many bytes
+// (*2 for unicode) into a string. The string is not null-terminated.
+// TODO: Write tests.
+func readStringData(r io.Reader, isUnicode bool) (str string, err error) {
+	// Recover in case we attempt to read more bytes than there is in the reader.
+	defer func() {
+		if r := recover(); r != nil {
+			// If panic occurs, return this error message
+			err = fmt.Errorf("golnk.readStringData: not enough bytes in reader")
+		}
+	}()
+
+	var size uint16
+	err = binary.Read(r, binary.LittleEndian, &size)
+	if err != nil {
+		return str, fmt.Errorf("golnk.readStringData: read size - %s", err.Error())
+	}
+	if isUnicode {
+		size = size * 2
+	}
+	b := make([]byte, size)
+	err = binary.Read(r, binary.LittleEndian, &b)
+	if err != nil {
+		return str, fmt.Errorf("golnk.readStringData: read bytes - %s", err.Error())
+	}
+	// Let's keep the unicode to support different languages.
+	return string(b), nil
+}
+
 // uint16Little reads a uint16 from []byte and returns the result in Little-Endian.
 func uint16Little(b []byte) uint16 {
 	if len(b) < 2 {
@@ -171,6 +200,11 @@ func int16Str(u int16) string {
 // uint32Str converts a uint32 to string using fmt.Sprint.
 func uint32Str(u uint32) string {
 	return fmt.Sprint(u)
+}
+
+// uint32StrHex converts a uint32 to a hex encoded string using fmt.Sprintf.
+func uint32StrHex(u uint32) string {
+	return fmt.Sprintf("%08x", u)
 }
 
 // int32Str converts an int32 to string using fmt.Sprint.

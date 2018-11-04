@@ -103,14 +103,15 @@ func formatTime(t [8]byte) string {
 /*
 	matchFlag does the following:
 	Given a uint32 flag read in littleEndian from disk and a []string,
-	match the flag bits and return a []string of matched flags.
-	This happens because bits are matched to the flags from 0 onwards but the
-	bit string is the other way around.
+	match the flag bits and return a map[string]bool (FlagMap) that has the
+	// matched flags as keys.
+	Flag bits must be reversed because bits are matched to the flags from 0
+	onwards but the bit string is the other way around.
 */
-func matchFlag(flag uint32, flagText []string) []string {
+func matchFlag(flag uint32, flagText []string) FlagMap {
 	// Convert to bits and then reverse.
 	flagBits := reverse(fmt.Sprintf("%b", flag))
-	var fl []string
+	mp := make(FlagMap, 0)
 	// If we have more bits than flags (something has gone wrong or the file is corrupted),
 	// then reduce the flagbits.
 
@@ -119,8 +120,8 @@ func matchFlag(flag uint32, flagText []string) []string {
 	}
 	for bitIndex := 0; bitIndex < len(flagBits); bitIndex++ {
 		if flagBits[bitIndex] == 0x31 {
-			fl = append(fl, flagText[bitIndex])
+			mp[flagText[bitIndex]] = true
 		}
 	}
-	return fl
+	return mp
 }

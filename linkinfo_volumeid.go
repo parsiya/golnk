@@ -50,7 +50,8 @@ func VolumeID(r io.Reader) (v VolID, err error) {
 	if err != nil {
 		return v, fmt.Errorf("golnk.VolumeID: read VolumeID section - %s", err.Error())
 	}
-	fmt.Printf("Read section volumeID. %d bytes.\n", sectionSize)
+	_ = sectionSize
+	// fmt.Printf("Read section volumeID. %d bytes.\n", sectionSize)
 	// fmt.Println(hex.Dump(sectionData))
 
 	// Read DriveType.

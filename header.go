@@ -18,6 +18,8 @@ const (
 	classID = "0114020000000000c000000000000046"
 )
 
+type FlagMap map[string]bool
+
 // From the docs:
 // "Multi-byte data values in the Shell Link Binary File Format are stored in little-endian format."
 
@@ -25,8 +27,8 @@ const (
 type ShellLinkHeader struct {
 	Magic          uint32    // Header size: should be 0x4c.
 	LinkCLSID      [16]byte  // A class identifier, should be  00021401-0000-0000-C000-000000000046.
-	LinkFlags      []string  // Information about the file an optional sections in the file.
-	FileAttributes []string  // File attributes about link target, originally a uint32.
+	LinkFlags      FlagMap   // Information about the file an optional sections in the file.
+	FileAttributes FlagMap   // File attributes about link target, originally a uint32.
 	CreationTime   time.Time // Creation time of link target in UTC. 16 bytes in file.
 	AccessTime     time.Time // Access time of link target. Could be zero. 16 bytes in file.
 	WriteTime      time.Time // Write time  of link target. Could be zero. 16 bytes in file.
@@ -197,13 +199,13 @@ func (h ShellLinkHeader) String() string {
 	var sb, flags, attribs strings.Builder
 
 	// Append all flags.
-	for _, fl := range h.LinkFlags {
+	for fl := range h.LinkFlags {
 		flags.WriteString(fl)
 		flags.WriteString("\n")
 	}
 
 	// Append all file attributes.
-	for _, at := range h.FileAttributes {
+	for at := range h.FileAttributes {
 		attribs.WriteString(at)
 		attribs.WriteString("\n")
 	}
