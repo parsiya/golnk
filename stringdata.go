@@ -2,6 +2,9 @@ package lnk
 
 import (
 	"io"
+	"strings"
+
+	"github.com/olekukonko/tablewriter"
 )
 
 // Optional StringData - Section 2.4.
@@ -31,7 +34,7 @@ type StringDataSection struct {
 
 	// CommandLineArguments stores the command-line arguments of the link target.
 	// Present with HasArguments flag.
-	CommandLineArguments string // String?
+	CommandLineArguments string
 
 	// IconLocation specifies the location of the icon to be used.
 	// Present with HasIconLocation flag.
@@ -84,4 +87,44 @@ func StringData(r io.Reader, linkFlags FlagMap) (st StringDataSection, err error
 		}
 	}
 	return st, err
+}
+
+// String prints StringDataSection in a table.
+func (st StringDataSection) String() string {
+	var sb strings.Builder
+
+	table := tablewriter.NewWriter(&sb)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetRowLine(true)
+
+	table.SetHeader([]string{"StringData", "Value"})
+
+	if st.NameString != "" {
+		table.Append([]string{"NameString", st.NameString})
+	}
+
+	if st.RelativePath != "" {
+		table.Append([]string{"RelativePath", st.RelativePath})
+	}
+
+	if st.WorkingDir != "" {
+		table.Append([]string{"WorkingDir", st.WorkingDir})
+	}
+
+	if st.CommandLineArguments != "" {
+		table.Append([]string{"CommandLineArguments", st.CommandLineArguments})
+	}
+
+	if st.IconLocation != "" {
+		table.Append([]string{"IconLocation", st.IconLocation})
+	}
+
+	table.Render()
+	return sb.String()
+}
+
+// toASCII converts English Unicode text to ASCII. First we detect if input is
+// English text by checking if half of the string is 0x00, if so, remove those bytes.
+func toASCII(str string) string {
+	return strings.Replace(str, " ", "", -1)
 }

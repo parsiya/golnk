@@ -4,6 +4,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"strings"
+
+	"github.com/olekukonko/tablewriter"
 )
 
 // CommonNetworkRelativeLink (section 2.3.2)
@@ -109,8 +112,8 @@ func networkProviderType(index uint32) string {
 	if exists {
 		return val
 	}
-	// If not found, return the hexencoded string.
-	return "0x" + uint32StrHex(index)
+	// If not found, return the hex encoded string.
+	return uint32StrHex(index)
 }
 
 // CommonNetwork reads the section data and populates a CommonNetworkRelativeLink.
@@ -196,4 +199,49 @@ func CommonNetwork(r io.Reader) (c CommonNetworkRelativeLink, err error) {
 		// fmt.Println("NetName", c.NetName)
 	}
 	return c, err
+}
+
+// String prints CommonNetworkRelativeLink in a table.
+func (c CommonNetworkRelativeLink) String() string {
+	var sb, flags strings.Builder
+
+	// Append all flags.
+	for _, fl := range c.CommonNetworkRelativeLinkFlagsStr {
+		flags.WriteString(fl)
+		flags.WriteString("\n")
+	}
+
+	table := tablewriter.NewWriter(&sb)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetRowLine(true)
+
+	table.SetHeader([]string{"CommonNetworkRelativeLink", "Value"})
+
+	table.Append([]string{"Size", uint32TableStr(c.Size)})
+	table.Append([]string{"Flags", flags.String()})
+	table.Append([]string{"NetworkProviderType", c.NetworkProviderType})
+
+	// Only add rows that exist (their offset is not zero).
+	if c.NetNameOffset != 0 {
+		table.Append([]string{"NetNameOffset", uint32TableStr(c.NetNameOffset)})
+		table.Append([]string{"NetName", c.NetName})
+	}
+
+	if c.DeviceNameOffset != 0 {
+		table.Append([]string{"DeviceNameOffset", uint32TableStr(c.DeviceNameOffset)})
+		table.Append([]string{"DeviceName", c.DeviceName})
+	}
+
+	if c.NetNameOffsetUnicode != 0 {
+		table.Append([]string{"NetNameOffsetUnicode", uint32TableStr(c.NetNameOffsetUnicode)})
+		table.Append([]string{"NetNameUnicode", c.NetNameUnicode})
+	}
+
+	if c.DeviceNameOffsetUnicode != 0 {
+		table.Append([]string{"DeviceNameOffsetUnicode", uint32TableStr(c.DeviceNameOffsetUnicode)})
+		table.Append([]string{"DeviceNameUnicode", c.DeviceNameUnicode})
+	}
+
+	table.Render()
+	return sb.String()
 }

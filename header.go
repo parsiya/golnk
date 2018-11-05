@@ -214,17 +214,17 @@ func (h ShellLinkHeader) String() string {
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.SetRowLine(true)
 
-	table.SetHeader([]string{"ShellLinkHeader Field", "Value"})
+	table.SetHeader([]string{"ShellLinkHeader", "Value"})
 
-	table.Append([]string{"Magic", uint32Str(h.Magic)})
+	table.Append([]string{"Magic", uint32TableStr(h.Magic)})
 	table.Append([]string{"LinkCLSID", hex.EncodeToString(h.LinkCLSID[:])})
 	table.Append([]string{"LinkFlags", flags.String()})
 	table.Append([]string{"FileAttributes", attribs.String()})
 	table.Append([]string{"CreationTime", h.CreationTime.String()})
 	table.Append([]string{"AccessTime", h.AccessTime.String()})
 	table.Append([]string{"WriteTime", h.WriteTime.String()})
-	table.Append([]string{"TargetFileSize", uint32Str(h.TargetFileSize)})
-	table.Append([]string{"IconIndex", int32Str(h.IconIndex)})
+	table.Append([]string{"TargetFileSize", uint32TableStr(h.TargetFileSize)})
+	table.Append([]string{"IconIndex", uint32TableStr(uint32(h.IconIndex))})
 	table.Append([]string{"HotKey", h.HotKey})
 	table.Render()
 

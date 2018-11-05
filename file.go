@@ -13,7 +13,6 @@ type LnkFile struct {
 	LinkInfo   LinkInfoSection   // LinkInfo.
 	StringData StringDataSection // StringData.
 	DataBlocks ExtraData         // ExtraData blocks.
-	// TODO: Add as you go.
 }
 
 // Read parses an io.Reader pointing to the contents of an lnk file.

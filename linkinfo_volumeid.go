@@ -5,6 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"strings"
+
+	"github.com/olekukonko/tablewriter"
 )
 
 // VolID is VolumeID (section 2.3.1. of [SHLLINK]).
@@ -76,7 +79,7 @@ func VolumeID(r io.Reader) (v VolID, err error) {
 	if err != nil {
 		return v, fmt.Errorf("golnk.VolumeID: read VolumeID.DriveSerialNumber - %s", err.Error())
 	}
-	v.DriveSerialNumber = hex.EncodeToString(sr[:])
+	v.DriveSerialNumber = "0x" + hex.EncodeToString(sr[:])
 
 	// fmt.Println("VolumeID.DriveSerialNumber:", v.DriveSerialNumber)
 
@@ -113,4 +116,33 @@ func VolumeID(r io.Reader) (v VolID, err error) {
 	// fmt.Println("VolumeLabelUnicode", v.VolumeLabel)
 
 	return v, err
+}
+
+// String prints VolumeID in a table.
+func (v VolID) String() string {
+
+	var sb strings.Builder
+
+	table := tablewriter.NewWriter(&sb)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetRowLine(true)
+
+	table.SetHeader([]string{"VolumeID", "Value"})
+
+	table.Append([]string{"Size", uint32TableStr(v.Size)})
+	table.Append([]string{"DriveType", v.DriveType})
+	table.Append([]string{"DriveSerialNumber", v.DriveSerialNumber})
+
+	if v.VolumeLabelOffset != 0 {
+		table.Append([]string{"VolumeLabelOffset", uint32TableStr(v.VolumeLabelOffset)})
+		table.Append([]string{"VolumeLabel", v.VolumeLabel})
+	}
+
+	if v.VolumeLabelOffsetUnicode != 0 {
+		table.Append([]string{"VolumeLabelOffsetUnicode", uint32TableStr(v.VolumeLabelOffsetUnicode)})
+		table.Append([]string{"VolumeLabel", v.VolumeLabel})
+	}
+
+	table.Render()
+	return sb.String()
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"strings"
 )
 
 // ExtraData represents section 2.5 of the specification.
@@ -91,4 +92,19 @@ func blockSignature(sig uint32) string {
 		return val
 	}
 	return "Signature Not Found - " + hex.EncodeToString(uint32Byte(sig))
+}
+
+// String prints the ExtraData blocks' Type, Size, and a hexdump of their content.
+func (e ExtraData) String() string {
+
+	var sb strings.Builder
+	for _, b := range e.Blocks {
+		sb.WriteString(fmt.Sprintf("Size: %s\n", uint32TableStr(b.Size)))
+		sb.WriteString(fmt.Sprintf("Signature: %s\n", uint32StrHex(b.Signature)))
+		sb.WriteString(fmt.Sprintf("Type: %s\n", b.Type))
+		sb.WriteString("Dump\n")
+		sb.WriteString(hex.Dump(b.Data))
+		sb.WriteString("-------------------------\n")
+	}
+	return sb.String()
 }

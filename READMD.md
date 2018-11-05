@@ -1,29 +1,44 @@
-# golnk - lnk Parser for Go
+# lnk - lnk Parser for Go
+lnk is a package for parsing Windows Shell Link (.lnk) files.
 
-Reference: https://msdn.microsoft.com/en-us/library/dd871305.aspx
-Version 5.0: https://winprotocoldoc.blob.core.windows.net/productionwindowsarchives/MS-SHLLINK/[MS-SHLLINK].pdf
+It's based on version 5.0 of the [MS-SHLLINK] document:
 
-# Structure
+* Reference: https://msdn.microsoft.com/en-us/library/dd871305.aspx
+* Version 5.0: https://winprotocoldoc.blob.core.windows.net/productionwindowsarchives/MS-SHLLINK/[MS-SHLLINK].pdf
+
+## Shell Link Structure
+Each file has at least one header (`SHELL_LINK_HEADER`) and one or more optional sections. The existence of these sections are defined by the `LinkFlags` uint32 in the header.
 
 ```
 SHELL_LINK = SHELL_LINK_HEADER [LINKTARGET_IDLIST] [LINKINFO]
               [STRING_DATA] *EXTRA_DATA
 ```
 
-## SHELL_LINK_HEADER
-Contains identification information, timestamps, and flags that specify the presence of optional structures.
+Note: "Unless otherwise specified, the value contained by size fields includes the size of size field itself."
 
-Little-endian, remember.
+Currently lnk parses every section other than `EXTRA_DATA`. Different data blocks are identified and stored but it does not parse any of them other than identifying the type (via their signature) and storing the content. Data blocks are defined in section 2.5 of the specification.
 
-* HeaderSize (4 bytes): The size, in bytes, of this structure. This value MUST be 0x0000004C.
-* LinkCLSID (16 bytes): A class identifier (CLSID). This value MUST be 00021401-0000-0000-C000-000000000046.
-* LinkFlags (4 bytes): A LinkFlags structure (section 2.1.1) that specifies information about the shell link and the presence of optional portions of the structure.
-* FileAttributes (4 bytes): A FileAttributesFlags structure (section 2.1.2) that specifies information about the link target.
-* CreationTime (8 bytes): A FILETIME structure ([MS-DTYP] section 2.3.3) that specifies the creation time of the link target in UTC (Coordinated Universal Time). If the value is zero, there is no creation time set on the link target.
-* AccessTime (8 bytes): A FILETIME structure ([MS-DTYP] section 2.3.3) that specifies the access time of the link target in UTC (Coordinated Universal Time). If the value is zero, there is no access time set on the link target.
-* WriteTime (8 bytes): A FILETIME structure ([MS-DTYP] section 2.3.3) that specifies the write time of the link target in UTC (Coordinated Universal Time). If the value is zero, there is no write time set on the link target.
-* FileSize (4 bytes): A 32-bit unsigned integer that specifies the size, in bytes, of the link target. If the link target file is larger than 0xFFFFFFFF, this value specifies the least significant 32 bits of the link target file size.
-* IconIndex (4 bytes): A 32-bit signed integer that specifies the index of an icon within a given icon location.
-* ShowCommand (4 bytes): A 32-bit unsigned integer that specifies the expected window state of an application launched by the link. This value SHOULD be one of the following.
+## Usage
+Pass a file name to `lnk.File` which returns a `LnkFile`:
 
-"Unless otherwise specified, the value contained by size fields includes the size of size field itself."
+``` go
+type LnkFile struct {
+	Header     ShellLinkHeader   // File header.
+	IDList     LinkTargetIDList  // LinkTargetIDList.
+	LinkInfo   LinkInfoSection   // LinkInfo.
+	StringData StringDataSection // StringData.
+	DataBlocks ExtraData         // ExtraData blocks.
+}
+```
+
+Each section is a struct that is populated. See their fields in their respective source files. Path to the target file is usually in `LinkInfo.LocalBasePath`.
+
+``` go
+code
+```
+
+
+
+
+
+Create an `io.Reader` from the contents and then 

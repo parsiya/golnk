@@ -5,6 +5,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"strings"
+
+	"github.com/olekukonko/tablewriter"
 )
 
 // LinkInfoSection represents the LinkInfo structure. Section 2.3 of [MS-SHLLINK].
@@ -51,7 +54,7 @@ type LinkInfoSection struct {
 	// Offset of CommonPathSuffixUnicode and present if LinkInfoHeaderSize >= 0x24.
 	CommonPathSuffixOffsetUnicode uint32 // Optional
 
-	// LinkInfo header section end. At least I think.
+	// LinkInfo header section end (I think?).
 
 	// VolumeID present if VolumeIDAndLocalBasePath is set.
 	VolID VolID
@@ -244,4 +247,70 @@ func LinkInfo(r io.Reader) (info LinkInfoSection, err error) {
 		}
 	}
 	return info, err
+}
+
+// String prints LinkInfoSection in a table.
+func (li LinkInfoSection) String() string {
+
+	var sb, flags strings.Builder
+	// Append all flags.
+	for _, fl := range li.LinkInfoFlagsStr {
+		flags.WriteString(fl)
+		flags.WriteString("\n")
+	}
+
+	table := tablewriter.NewWriter(&sb)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetRowLine(true)
+
+	table.SetHeader([]string{"LinkInfo", "Value"})
+
+	table.Append([]string{"Size", uint32TableStr(li.Size)})
+	table.Append([]string{"HeaderSize", uint32TableStr(li.LinkInfoHeaderSize)})
+	table.Append([]string{"Flags", flags.String()})
+
+	// Only add rows that exist (their offset is not zero).
+	if li.LocalBasePathOffset != 0 {
+		table.Append([]string{"LocalBasePathOffset", uint32TableStr(li.LocalBasePathOffset)})
+		table.Append([]string{"LocalBasePath", li.LocalBasePath})
+	}
+
+	if li.CommonPathSuffixOffset != 0 {
+		table.Append([]string{"CommonPathSuffixOffset", uint32TableStr(li.CommonPathSuffixOffset)})
+		table.Append([]string{"CommonPathSuffix", li.CommonPathSuffix})
+	}
+
+	if li.LocalBasePathOffsetUnicode != 0 {
+		table.Append([]string{"LocalBasePathOffsetUnicode", uint32TableStr(li.LocalBasePathOffsetUnicode)})
+		table.Append([]string{"LocalBasePathUnicode", li.LocalBasePathUnicode})
+	}
+
+	if li.CommonPathSuffixOffsetUnicode != 0 {
+		table.Append([]string{"CommonPathSuffixOffsetUnicode", uint32TableStr(li.CommonPathSuffixOffsetUnicode)})
+		table.Append([]string{"CommonPathSuffixUnicode", li.CommonPathSuffixUnicode})
+	}
+
+	// Add VolumeID and CommonNetwork offsets if they are not zero.
+	if li.VolumeIDOffset != 0 {
+		table.Append([]string{"VolumeIDOffset", uint32TableStr(li.VolumeIDOffset)})
+	}
+
+	if li.CommonNetworkRelativeLinkOffset != 0 {
+		table.Append([]string{"CommonNetworkRelativeLinkOffset", uint32TableStr(li.CommonNetworkRelativeLinkOffset)})
+	}
+
+	table.Render()
+
+	// Print VolumeID in a separate table if it exists.
+	if li.VolumeIDOffset != 0 {
+		sb.WriteString("\n\n")
+		sb.WriteString(li.VolID.String())
+	}
+
+	// Print CommonNetworkRelativeLink in a separate table if it exists.
+	if li.CommonNetworkRelativeLinkOffset != 0 {
+		sb.WriteString("\n\n")
+		sb.WriteString(li.NetworkRelativeLink.String())
+	}
+	return sb.String()
 }
