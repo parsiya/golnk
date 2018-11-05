@@ -87,6 +87,7 @@ func blockSignature(sig uint32) string {
 		0xA0000005: "SpecialFolderDataBlock",
 		0xA0000003: "TrackerDataBlock",
 		0xA000000C: "VistaAndAboveIDListDataBlock",
+		0xA000000B: "KnownFolderDataBlock",
 	}
 	if val, exists := signatureMap[sig]; exists {
 		return val

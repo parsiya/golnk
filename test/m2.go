@@ -14,15 +14,14 @@ func main() {
 	}
 
 	// Print header.
-	// fmt.Println(Lnk.Header)
+	fmt.Println(Lnk.Header)
 
 	// Print LocalBasePath.
-	// fmt.Println(Lnk.LinkInfo.LocalBasePath)
+	fmt.Println("BasePath", Lnk.LinkInfo.LocalBasePath)
 
-	// fmt.Println(Lnk.LinkInfo)
+	fmt.Println(Lnk.LinkInfo)
 
-	// fmt.Println(Lnk.StringData)
+	fmt.Println(Lnk.StringData)
 
 	fmt.Println(Lnk.DataBlocks)
-
 }
