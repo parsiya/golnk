@@ -41,15 +41,17 @@ func ReadBytes(b []byte, offset, num int) (out []byte, n int) {
 	return b[offset : offset+num], num
 }
 
-// readSection reads a size from the start of the io.Reader. The size length is
-// decided by the parameter sSize.
-// sSize == 2 - read uint16
-// sSize == 4 - read uint32
-// sSize == 8 - read uint64 - Not needed for now.
-// Then read (size-sSize) bytes, populate the start with the original bytes and
-// add the rest. Finally return the []byte and a new io.Reader to it.
-// The size bytes are added to the start of the []byte to keep the section []byte
-// intact for later offset use.
+/*
+	readSection reads a size from the start of the io.Reader. The size length is
+	decided by the parameter sSize.
+	sSize == 2 - read uint16
+	sSize == 4 - read uint32
+	sSize == 8 - read uint64 - Not needed for now.
+	Then read (size-sSize) bytes, populate the start with the original bytes
+	and add the rest. Finally return the []byte and a new io.Reader to it.
+	The size bytes are added to the start of the []byte to keep the section
+	[]byte intact for later offset use.
+*/
 func readSection(r io.Reader, sSize int) (data []byte, nr io.Reader, size int, err error) {
 	// We are not going to lose data by copying a smaller var into a larger one.
 	var sectionSize uint64
@@ -103,13 +105,12 @@ func readSection(r io.Reader, sSize int) (data []byte, nr io.Reader, size int, e
 }
 
 // readString returns a string of all bytes from the []byte until the first 0x00.
-// TODO: Tests for this?
 func readString(data []byte) string {
 	// Find the index of first 0x00.
 	i := bytes.IndexByte(data, byte(0x00))
 	if i == -1 {
 		// If 0x00 is not found, return all the slice.
-		i = len(data) - 1
+		i = len(data)
 	}
 	return string(data[:i])
 }

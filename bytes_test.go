@@ -155,3 +155,26 @@ func Test_bitMaskuint32(t *testing.T) {
 		})
 	}
 }
+
+func Test_readString(t *testing.T) {
+	type args struct {
+		data []byte
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{"normal-0123", args{[]byte{0x30, 0x31, 0x32, 0x33, 0x00, 0x34, 0x35, 0x36}}, "0123"},
+		{"no-0x00", args{[]byte{0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36}}, "0123456"},
+		{"start-0x00", args{[]byte{0x00, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36}}, ""},
+		{"multiple-sequential-0x00", args{[]byte{0x30, 0x31, 0x32, 0x33, 0x00, 0x00, 0x34, 0x35, 0x36}}, "0123"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := readString(tt.args.data); got != tt.want {
+				t.Errorf("readString() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
