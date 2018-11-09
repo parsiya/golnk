@@ -116,23 +116,20 @@ func readString(data []byte) string {
 }
 
 // readUnicodeString returns a string of all bytes from the []byte until the
-// first 0x00 00.
-// TODO: Write tests.
+// first 0x0000.
 func readUnicodeString(data []byte) string {
-	// Create the unicode null-terminator.
-	var unicodeNull rune
-	n := utf8.EncodeRune([]byte{0x00, 0x00}, unicodeNull)
-	if n != 2 {
-		// This failed, return an empty string.
-		return ""
+
+	// Read two bytes at a time and convert to rune, stop if both are 0x0000 or
+	// we have reached the end of the input.
+	var runes []rune
+	for bitIndex := 0; bitIndex < len(data)/2; bitIndex++ {
+		if data[bitIndex*2] == 0x00 && data[(bitIndex*2)+1] == 0x00 {
+			return string(runes)
+		}
+		r, _ := utf8.DecodeRune(data[bitIndex*2:])
+		runes = append(runes, r)
 	}
-	// Find the index of first 0x0000.
-	i := bytes.IndexRune(data, unicodeNull)
-	if i == -1 {
-		// If 0x0000 is not found, return all the slice.
-		i = len(data) - 1
-	}
-	return string(data[:i])
+	return string(runes)
 }
 
 // readStringData reads a uint16 as size and then reads that many bytes
