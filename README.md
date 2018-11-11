@@ -9,30 +9,32 @@ It's based on version 5.0 of the [MS-SHLLINK] document:
 If the lnk file does not adhere to this specification (either corrupted or from an earlier version), it might not be parsed.
 
 ## Shell Link Structure
-Each file has at least one header (`SHELL_LINK_HEADER`) and one or more optional sections. The existence of these sections are defined by the `LinkFlags` uint32 in the header.
+Each file has at least one header (`SHELL_LINK_HEADER`) and one or more optional sections. 
 
 ```
 SHELL_LINK = SHELL_LINK_HEADER [LINKTARGET_IDLIST] [LINKINFO]
               [STRING_DATA] *EXTRA_DATA
 ```
 
-Note: "Unless otherwise specified, the value contained by size fields includes the size of size field itself."
+The existence of these sections are defined by the `LinkFlags` uint32 in the header (mapped to `HEADER.LinkFlags`). To see all flags, look at `linkFlags` in [header.go](header.go).
+
+Note about size fields: "Unless otherwise specified, the value contained by size fields includes the size of size field itself."
 
 Currently lnk parses every section except `EXTRA_DATA`. Different data blocks are identified and stored but it does not parse any of them other than identifying the type (via their signature) and storing the content. Data blocks are defined in section 2.5 of the specification.
 
 ## Setup
-Package only one dependency (for stringer methods): https://github.com/olekukonko/tablewriter.
+Package has only one dependency: https://github.com/olekukonko/tablewriter. It's used to create tables in section stringers.
 
 ## Usage
-Pass a filename to `lnk.File` or an `io.Reader` with contents to `lnk.Read`. Both return `LnkFile`:
+Pass a filename to `lnk.File` or an `io.Reader` with its contents to `lnk.Read`. Both return `LnkFile`:
 
 ``` go
 type LnkFile struct {
-	Header     ShellLinkHeader   // File header.
-	IDList     LinkTargetIDList  // LinkTargetIDList.
-	LinkInfo   LinkInfoSection   // LinkInfo.
-	StringData StringDataSection // StringData.
-	DataBlocks ExtraData         // ExtraData blocks.
+	Header     ShellLinkHeaderSection  // File header.
+	IDList     LinkTargetIDListSection // LinkTargetIDList.
+	LinkInfo   LinkInfoSection         // LinkInfo.
+	StringData StringDataSection       // StringData.
+	DataBlocks ExtraDataSection        // ExtraData blocks.
 }
 ```
 
@@ -134,10 +136,10 @@ func main() {
 }
 ```
 
-
 ## TODO
 1. Use `dep`?
 2. Identify ExtraDataBlocks.
 3. Clean up code.
 4. Write more unit tests.
 5. Test it on more lnk files.
+6. ~~Add a `Data` field to each section and store raw bytes there. Then add a `Dump` method to each section and use `hex.Dump` to dump the raw bytes.~~

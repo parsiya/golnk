@@ -23,22 +23,23 @@ type FlagMap map[string]bool
 // From the docs:
 // "Multi-byte data values in the Shell Link Binary File Format are stored in little-endian format."
 
-// ShellLinkHeader represents the lnk header.
-type ShellLinkHeader struct {
+// ShellLinkHeaderSection represents the lnk header.
+type ShellLinkHeaderSection struct {
 	Magic          uint32    // Header size: should be 0x4c.
-	LinkCLSID      [16]byte  // A class identifier, should be  00021401-0000-0000-C000-000000000046.
-	LinkFlags      FlagMap   // Information about the file an optional sections in the file.
+	LinkCLSID      [16]byte  // A class identifier, should be 00021401-0000-0000-C000-000000000046.
+	LinkFlags      FlagMap   // Information about the file and optional sections in the file.
 	FileAttributes FlagMap   // File attributes about link target, originally a uint32.
 	CreationTime   time.Time // Creation time of link target in UTC. 16 bytes in file.
 	AccessTime     time.Time // Access time of link target. Could be zero. 16 bytes in file.
 	WriteTime      time.Time // Write time  of link target. Could be zero. 16 bytes in file.
 	TargetFileSize uint32    // Filesize of link target. If larger than capacity, it will have the LSB 32-bits of size.
-	IconIndex      int32     // 32-bit signed integer, the index of an icon within a given icon location. TODO: is it just a number to create the icon of the lnk file based on the target?
+	IconIndex      int32     // 32-bit signed integer, the index of an icon within a given icon location.
 	ShowCommand    string    // Result of the uint32 integer: The expected windows state of the target after execution.
 	HotKey         string    // HotKeyFlags structure to launch the target. Original is uint16.
-	Reserved1      uint16    // Zero
-	Reserved2      uint32    // Zero
-	Reserved3      uint32    // Zero
+	Reserved1      uint16    // Zero.
+	Reserved2      uint32    // Zero.
+	Reserved3      uint32    // Zero.
+	Raw            []byte    // Section's raw bytes.
 }
 
 // linkFlags defines what shell link structures are in the file.
@@ -92,30 +93,34 @@ var fileAttributesFlags = []string{
 }
 
 // Header parses the first 0x4c bytes of the io.Reader and returns a ShellLinkHeader.
-func Header(buf io.Reader) (head ShellLinkHeader, err error) {
+func Header(r io.Reader) (head ShellLinkHeaderSection, err error) {
 
-	// Check the first four bytes against 0x4c.
-	var magic uint32
-	err = binary.Read(buf, binary.LittleEndian, &magic)
+	// Read the section.
+	sectionData, sectionReader, sectionSize, err := readSection(r, 4)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: error reading magic string - %s", err.Error())
 	}
-	if magic != headerSize {
-		return head, fmt.Errorf("lnk.header: invalid magic string- got %x, want %s", magic, "0x4C")
+
+	// Check sectionSize (the first four bytes) against 0x4c.
+	if sectionSize != headerSize {
+		return head, fmt.Errorf("lnk.header: invalid magic string - got %x, want %s", sectionSize, "0x4C")
 	}
-	head.Magic = magic
+	head.Magic = uint32(sectionSize)
+
+	// Store raw bytes.
+	head.Raw = sectionData
 
 	// Next 16 bytes should be 00021401-0000-0000-C000-000000000046.
-	// Read two uint64 and compare.
+	// When reading, we will see 0114020000000000c000000000000046.
 	var clsID [16]byte
-	err = binary.Read(buf, binary.LittleEndian, &clsID)
+	err = binary.Read(sectionReader, binary.LittleEndian, &clsID)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: error reading LinkCLSID - %s", err.Error())
 	}
 	hexClsID := hex.EncodeToString(clsID[:])
 	if hexClsID != classID {
 		return head,
-			fmt.Errorf("lnk.header: invalid magic string- got %s, want %s", hexClsID, classID)
+			fmt.Errorf("lnk.header: invalid class ID - got %s, want %s", hexClsID, classID)
 	}
 	head.LinkCLSID = clsID
 
@@ -123,7 +128,7 @@ func Header(buf io.Reader) (head ShellLinkHeader, err error) {
 	// Convert the next uint32 to bits, go over the bits and add the flags.
 	// We will lose preceding zeros by using uint32 but we do not care about them.
 	var lf uint32
-	err = binary.Read(buf, binary.LittleEndian, &lf)
+	err = binary.Read(sectionReader, binary.LittleEndian, &lf)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: reading LinkFlags - %s", err.Error())
 	}
@@ -132,7 +137,7 @@ func Header(buf io.Reader) (head ShellLinkHeader, err error) {
 	// Parse FileAttributes.
 	var attribs uint32
 	// Same as before, read BigEndian.
-	err = binary.Read(buf, binary.LittleEndian, &attribs)
+	err = binary.Read(sectionReader, binary.LittleEndian, &attribs)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: reading FileAttributes - %s", err.Error())
 	}
@@ -140,39 +145,39 @@ func Header(buf io.Reader) (head ShellLinkHeader, err error) {
 
 	// Convert timestamps from Windows Filetime to time.Time.
 	var crTime, wrTime, acTime [8]byte
-	err = binary.Read(buf, binary.LittleEndian, &crTime)
+	err = binary.Read(sectionReader, binary.LittleEndian, &crTime)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: reading CreationTime - %s", err.Error())
 	}
 	head.CreationTime = toTime(crTime)
 
-	err = binary.Read(buf, binary.LittleEndian, &wrTime)
+	err = binary.Read(sectionReader, binary.LittleEndian, &wrTime)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: reading WriteTime - %s", err.Error())
 	}
 	head.WriteTime = toTime(wrTime)
 
-	err = binary.Read(buf, binary.LittleEndian, &acTime)
+	err = binary.Read(sectionReader, binary.LittleEndian, &acTime)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: reading AccessTime - %s", err.Error())
 	}
 	head.AccessTime = toTime(acTime)
 
 	// Target file size.
-	err = binary.Read(buf, binary.LittleEndian, &head.TargetFileSize)
+	err = binary.Read(sectionReader, binary.LittleEndian, &head.TargetFileSize)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: reading target file size - %s", err.Error())
 	}
 
 	// Icon index is a signed 32-bit integer.
-	err = binary.Read(buf, binary.LittleEndian, &head.IconIndex)
+	err = binary.Read(sectionReader, binary.LittleEndian, &head.IconIndex)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: reading icon index - %s", err.Error())
 	}
 
 	// ShowCommand
 	var sw uint32
-	err = binary.Read(buf, binary.LittleEndian, &sw)
+	err = binary.Read(sectionReader, binary.LittleEndian, &sw)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: reading showcommand - %s", err.Error())
 	}
@@ -180,22 +185,22 @@ func Header(buf io.Reader) (head ShellLinkHeader, err error) {
 
 	// Hotkey.
 	var hk uint16
-	err = binary.Read(buf, binary.LittleEndian, &hk)
+	err = binary.Read(sectionReader, binary.LittleEndian, &hk)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: reading hotkey - %s", err.Error())
 	}
 	head.HotKey = HotKey(hk)
 
-	// The rest should be 10-bytes of zeroes.
-	binary.Read(buf, binary.LittleEndian, &head.Reserved1)
-	binary.Read(buf, binary.LittleEndian, &head.Reserved2)
-	binary.Read(buf, binary.LittleEndian, &head.Reserved3)
+	// The rest should be 10 0x00 bytes.
+	binary.Read(sectionReader, binary.LittleEndian, &head.Reserved1)
+	binary.Read(sectionReader, binary.LittleEndian, &head.Reserved2)
+	binary.Read(sectionReader, binary.LittleEndian, &head.Reserved3)
 
 	return head, err
 }
 
-// String prints the ShellLinkHeader in a nice looking table.
-func (h ShellLinkHeader) String() string {
+// String prints the ShellLinkHeader in a table.
+func (h ShellLinkHeaderSection) String() string {
 	var sb, flags, attribs strings.Builder
 
 	// Append all flags.
@@ -229,4 +234,9 @@ func (h ShellLinkHeader) String() string {
 	table.Render()
 
 	return sb.String()
+}
+
+// Dump returns the hex.Dump of section data.
+func (h ShellLinkHeaderSection) Dump() string {
+	return hex.Dump(h.Raw)
 }

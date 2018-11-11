@@ -8,11 +8,11 @@ import (
 
 // LnkFile represents one lnk file.
 type LnkFile struct {
-	Header     ShellLinkHeader   // File header.
-	IDList     LinkTargetIDList  // LinkTargetIDList.
-	LinkInfo   LinkInfoSection   // LinkInfo.
-	StringData StringDataSection // StringData.
-	DataBlocks ExtraData         // ExtraData blocks.
+	Header     ShellLinkHeaderSection  // File header.
+	IDList     LinkTargetIDListSection // LinkTargetIDList.
+	LinkInfo   LinkInfoSection         // LinkInfo.
+	StringData StringDataSection       // StringData.
+	DataBlocks ExtraDataSection        // ExtraData blocks.
 }
 
 // Read parses an io.Reader pointing to the contents of an lnk file.

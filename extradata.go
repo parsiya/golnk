@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// ExtraData represents section 2.5 of the specification.
-type ExtraData struct {
+// ExtraDataSection represents section 2.5 of the specification.
+type ExtraDataSection struct {
 	Blocks []ExtraDataBlock
 	// Terminal block at the end of the ExtraData section.
 	// Value must be smaller than 0x04.
@@ -34,7 +34,7 @@ type ExtraDataBlock struct {
 }
 
 // DataBlock reads and populates an ExtraData.
-func DataBlock(r io.Reader) (extra ExtraData, err error) {
+func DataBlock(r io.Reader) (extra ExtraDataSection, err error) {
 
 	var db ExtraDataBlock
 	for {
@@ -96,7 +96,7 @@ func blockSignature(sig uint32) string {
 }
 
 // String prints the ExtraData blocks' Type, Size, and a hexdump of their content.
-func (e ExtraData) String() string {
+func (e ExtraDataSection) String() string {
 
 	var sb strings.Builder
 	for _, b := range e.Blocks {
@@ -104,8 +104,13 @@ func (e ExtraData) String() string {
 		sb.WriteString(fmt.Sprintf("Signature: %s\n", uint32StrHex(b.Signature)))
 		sb.WriteString(fmt.Sprintf("Type: %s\n", b.Type))
 		sb.WriteString("Dump\n")
-		sb.WriteString(hex.Dump(b.Data))
+		sb.WriteString(b.Dump())
 		sb.WriteString("-------------------------\n")
 	}
 	return sb.String()
+}
+
+// Dump returns the hex.Dump of ExtraDataBlock.
+func (db ExtraDataBlock) Dump() string {
+	return hex.Dump(db.Data)
 }

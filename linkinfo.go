@@ -3,6 +3,7 @@ package lnk
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"strings"
@@ -77,6 +78,9 @@ type LinkInfoSection struct {
 	// Null-terminated Unicode string to common path.
 	// Present only VolumeIDAndLocalBasePath is set and LinkInfoHeaderSize >= 0x24.
 	CommonPathSuffixUnicode string // Optional
+
+	// Section's raw bytes.
+	Raw []byte
 }
 
 // linkInfoFlags defines the LinkInfoFlags. Only the first two bits are used for now.
@@ -99,8 +103,11 @@ func LinkInfo(r io.Reader) (info LinkInfoSection, err error) {
 		return info, fmt.Errorf("lnk.LinkInfo: section - %s", err.Error())
 	}
 	info.Size = uint32(sectionSize)
+
+	// Save raw bytes.
+	info.Raw = sectionData
+
 	// fmt.Println("info.Size", info.Size)
-	// fmt.Println(hex.Dump(sectionData))
 
 	// Read LinkInfoHeaderSize.
 	err = binary.Read(sectionReader, binary.LittleEndian, &info.LinkInfoHeaderSize)
@@ -313,4 +320,9 @@ func (li LinkInfoSection) String() string {
 		sb.WriteString(li.NetworkRelativeLink.String())
 	}
 	return sb.String()
+}
+
+// Dump returns the hex.Dump of section data.
+func (li LinkInfoSection) Dump() string {
+	return hex.Dump(li.Raw)
 }

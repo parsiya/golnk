@@ -10,13 +10,14 @@ import (
 // If Header has HasLinkTargetIDList, then header is immediately followed by
 // one LinkTargetIDList structure.
 
-// LinkTargetIDList contains information about the target of the link.
+// LinkTargetIDListSection contains information about the target of the link.
 // Section 2.2 in= [MS-SHLLINK]
-type LinkTargetIDList struct {
+type LinkTargetIDListSection struct {
 	// First two bytes is IDListSize.
 	IDListSize uint16
-	// Data containing IDLists and TerminalID.
+	// // Section's raw bytes.
 	List IDList
+	// Raw conta
 }
 
 // IDList represents a persisted item ID list.
@@ -42,7 +43,7 @@ type ItemID struct {
 // LinkTarget returns a populated LinkTarget based on bytes passed. []byte
 // should point to the start of the section. Normally this will be offset 0x4c
 // of the lnk file.
-func LinkTarget(r io.Reader) (li LinkTargetIDList, err error) {
+func LinkTarget(r io.Reader) (li LinkTargetIDListSection, err error) {
 
 	// Read the first two bytes to get the IDListSize.
 	err = binary.Read(r, binary.LittleEndian, &li.IDListSize)
