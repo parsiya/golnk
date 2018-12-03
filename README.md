@@ -143,3 +143,6 @@ func main() {
 4. Write more unit tests.
 5. Test it on more lnk files.
 6. ~~Add a `Data` field to each section and store raw bytes there. Then add a `Dump` method to each section and use `hex.Dump` to dump the raw bytes.~~
+7. Add godoc link: https://godoc.org/github.com/parsiya/golnk
+	* Add examples in doc.go for godoc.
+	* Add links to godoc descriptions.

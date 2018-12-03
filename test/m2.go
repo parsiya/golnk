@@ -8,7 +8,7 @@ import (
 
 func main() {
 
-	Lnk, err := lnk.File("vbox-svr-win10.lnk")
+	Lnk, err := lnk.File("test.lnk")
 	if err != nil {
 		panic(err)
 	}
