@@ -91,7 +91,7 @@ func readSection(r io.Reader, sSize int, maxSize uint64) (data []byte, nr io.Rea
 	// Create a []byte of sectionSize-4 and read that many bytes from io.Reader.
 	computedSize := sectionSize - uint64(sSize)
 	if computedSize > maxSize {
-		return data, nr, size, fmt.Errorf("golnk.readSection: invalid computed size got %d; expected a size < %d", sSize, maxSize)
+		return data, nr, size, fmt.Errorf("golnk.readSection: invalid computed size got %d; expected a size < %d", computedSize, maxSize)
 	}
 
 	tempData := make([]byte, computedSize)
