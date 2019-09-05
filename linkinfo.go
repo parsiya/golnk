@@ -95,10 +95,10 @@ var linkInfoFlags = []string{
 }
 
 // LinkInfo reads the io.Reader and returns a populated LinkInfoSection.
-func LinkInfo(r io.Reader) (info LinkInfoSection, err error) {
+func LinkInfo(r io.Reader, maxSize uint64) (info LinkInfoSection, err error) {
 
 	// Parse section.
-	sectionData, sectionReader, sectionSize, err := readSection(r, 4)
+	sectionData, sectionReader, sectionSize, err := readSection(r, 4, maxSize)
 	if err != nil {
 		return info, fmt.Errorf("lnk.LinkInfo: section - %s", err.Error())
 	}
@@ -193,7 +193,7 @@ func LinkInfo(r io.Reader) (info LinkInfoSection, err error) {
 		// Read VolumeID struct from offset.
 		// Make an io.Reader for bytes starting from that offset.
 		vbuf := bytes.NewReader(sectionData[info.VolumeIDOffset:])
-		vol, err := VolumeID(vbuf)
+		vol, err := VolumeID(vbuf, maxSize)
 		if err != nil {
 			return info, fmt.Errorf("lnk.LinkInfo: parse VolumeID - %s", err.Error())
 		}
@@ -250,7 +250,7 @@ func LinkInfo(r io.Reader) (info LinkInfoSection, err error) {
 			// Create a reader from CommonNetworkRelativeLink data.
 			nbuf := bytes.NewReader(sectionData[info.CommonNetworkRelativeLinkOffset:])
 			// And parse it.
-			info.NetworkRelativeLink, _ = CommonNetwork(nbuf)
+			info.NetworkRelativeLink, _ = CommonNetwork(nbuf, maxSize)
 		}
 	}
 	return info, err
