@@ -52,7 +52,7 @@ func ReadBytes(b []byte, offset, num int) (out []byte, n int) {
 	The size bytes are added to the start of the []byte to keep the section
 	[]byte intact for later offset use.
 */
-func readSection(r io.Reader, sSize int) (data []byte, nr io.Reader, size int, err error) {
+func readSection(r io.Reader, sSize int, maxSize uint64) (data []byte, nr io.Reader, size int, err error) {
 	// We are not going to lose data by copying a smaller var into a larger one.
 	var sectionSize uint64
 	switch sSize {
@@ -89,7 +89,12 @@ func readSection(r io.Reader, sSize int) (data []byte, nr io.Reader, size int, e
 	}
 
 	// Create a []byte of sectionSize-4 and read that many bytes from io.Reader.
-	tempData := make([]byte, sectionSize-uint64(sSize))
+	computedSize := sectionSize - uint64(sSize)
+	if computedSize > maxSize {
+		return data, nr, size, fmt.Errorf("golnk.readSection: invalid computed size got %d; expected a size < %d", computedSize, maxSize)
+	}
+
+	tempData := make([]byte, computedSize)
 	err = binary.Read(r, binary.LittleEndian, &tempData)
 	if err != nil {
 		return data, nr, size, fmt.Errorf("golnk.readSection: read section %d bytes - %s", sectionSize-uint64(sSize), err.Error())

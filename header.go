@@ -93,10 +93,10 @@ var fileAttributesFlags = []string{
 }
 
 // Header parses the first 0x4c bytes of the io.Reader and returns a ShellLinkHeader.
-func Header(r io.Reader) (head ShellLinkHeaderSection, err error) {
+func Header(r io.Reader, maxSize uint64) (head ShellLinkHeaderSection, err error) {
 
 	// Read the section.
-	sectionData, sectionReader, sectionSize, err := readSection(r, 4)
+	sectionData, sectionReader, sectionSize, err := readSection(r, 4, maxSize)
 	if err != nil {
 		return head, fmt.Errorf("lnk.header: error reading magic string - %s", err.Error())
 	}

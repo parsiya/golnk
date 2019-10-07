@@ -118,9 +118,9 @@ func networkProviderType(index uint32) string {
 
 // CommonNetwork reads the section data and populates a CommonNetworkRelativeLink.
 // Section 2.3.2 in docs.
-func CommonNetwork(r io.Reader) (c CommonNetworkRelativeLink, err error) {
+func CommonNetwork(r io.Reader, maxSize uint64) (c CommonNetworkRelativeLink, err error) {
 	// Read the section.
-	sectionData, sectionReader, sectionSize, err := readSection(r, 4)
+	sectionData, sectionReader, sectionSize, err := readSection(r, 4, maxSize)
 	if err != nil {
 		return c, fmt.Errorf("golnk.CommonNetwork: read CommonNetwork section - %s", err.Error())
 	}

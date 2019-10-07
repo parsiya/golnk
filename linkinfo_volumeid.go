@@ -47,9 +47,9 @@ var driveType = []string{
 }
 
 // VolumeID reads the VolID struct.
-func VolumeID(r io.Reader) (v VolID, err error) {
+func VolumeID(r io.Reader, maxSize uint64) (v VolID, err error) {
 	// Read the section.
-	sectionData, sectionReader, sectionSize, err := readSection(r, 4)
+	sectionData, sectionReader, sectionSize, err := readSection(r, 4, maxSize)
 	if err != nil {
 		return v, fmt.Errorf("golnk.VolumeID: read VolumeID section - %s", err.Error())
 	}
