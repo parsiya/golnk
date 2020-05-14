@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -84,12 +83,13 @@ func HotKey(hotkey uint16) string {
 
 // toTime converts an 8-byte Windows Filetime to time.Time.
 func toTime(t [8]byte) time.Time {
-	// https://golang.org/src/syscall/types_windows.go#L344 to the rescue.
-	ft := &syscall.Filetime{
-		LowDateTime:  binary.LittleEndian.Uint32(t[:4]),
-		HighDateTime: binary.LittleEndian.Uint32(t[4:]),
-	}
-	return time.Unix(0, ft.Nanoseconds())
+	// Taken from https://golang.org/src/syscall/types_windows.go#L352, which is only available on Windows
+	nsec := int64(binary.LittleEndian.Uint32(t[4:]))<<32 + int64(binary.LittleEndian.Uint32(t[:4]))
+	// change starting time to the Epoch (00:00:00 UTC, January 1, 1970)
+	nsec -= 116444736000000000
+	// convert into nanoseconds
+	nsec *= 100
+	return time.Unix(0, nsec)
 }
 
 // formatTime converts a 8-byte Windows Filetime to time.Time and then formats
