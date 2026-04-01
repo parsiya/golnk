@@ -25,6 +25,17 @@ Currently lnk parses every section except `EXTRA_DATA`. Different data blocks ar
 ## Setup
 Package has only one dependency: https://github.com/olekukonko/tablewriter. It's used to create tables in section stringers.
 
+## Testing
+Run the root package tests from the repository root with:
+
+```sh
+go test .
+```
+
+The fixture-based tests use the sample `.lnk` files in `test/`.
+
+The `test/` directory also contains standalone sample programs with their own `main` functions, so `go test ./...` is not expected to work without reorganizing that directory.
+
 ## Usage
 Pass a filename to `lnk.File` or an `io.Reader` with its contents to `lnk.Read`. Both return `LnkFile`:
 
@@ -137,9 +148,9 @@ func main() {
 ```
 
 ## TODO
-1. Use `dep`?
+1. ~~Use `dep`?~~
 2. Identify ExtraDataBlocks.
 3. Clean up code.
-4. Write more unit tests.
+4. ~~Write more unit tests.~~
 5. Test it on more lnk files.
 6. ~~Add a `Data` field to each section and store raw bytes there. Then add a `Dump` method to each section and use `hex.Dump` to dump the raw bytes.~~
