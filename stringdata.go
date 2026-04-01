@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 // Optional StringData - Section 2.4.
@@ -93,11 +94,16 @@ func StringData(r io.Reader, linkFlags FlagMap) (st StringDataSection, err error
 func (st StringDataSection) String() string {
 	var sb strings.Builder
 
-	table := tablewriter.NewWriter(&sb)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetRowLine(true)
+	table := tablewriter.NewTable(&sb,
+		tablewriter.WithRowAlignment(tw.AlignLeft),
+		tablewriter.WithRendition(tw.Rendition{
+			Settings: tw.Settings{
+				Separators: tw.Separators{BetweenRows: tw.On},
+			},
+		}),
+	)
 
-	table.SetHeader([]string{"StringData", "Value"})
+	table.Header([]string{"StringData", "Value"})
 
 	if st.NameString != "" {
 		table.Append([]string{"NameString", st.NameString})

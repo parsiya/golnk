@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 const (
@@ -215,11 +216,16 @@ func (h ShellLinkHeaderSection) String() string {
 		attribs.WriteString("\n")
 	}
 
-	table := tablewriter.NewWriter(&sb)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetRowLine(true)
+	table := tablewriter.NewTable(&sb,
+		tablewriter.WithRowAlignment(tw.AlignLeft),
+		tablewriter.WithRendition(tw.Rendition{
+			Settings: tw.Settings{
+				Separators: tw.Separators{BetweenRows: tw.On},
+			},
+		}),
+	)
 
-	table.SetHeader([]string{"ShellLinkHeader", "Value"})
+	table.Header([]string{"ShellLinkHeader", "Value"})
 
 	table.Append([]string{"Magic", uint32TableStr(h.Magic)})
 	table.Append([]string{"LinkCLSID", hex.EncodeToString(h.LinkCLSID[:])})

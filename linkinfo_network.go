@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 // CommonNetworkRelativeLink (section 2.3.2)
@@ -211,11 +212,16 @@ func (c CommonNetworkRelativeLink) String() string {
 		flags.WriteString("\n")
 	}
 
-	table := tablewriter.NewWriter(&sb)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetRowLine(true)
+	table := tablewriter.NewTable(&sb,
+		tablewriter.WithRowAlignment(tw.AlignLeft),
+		tablewriter.WithRendition(tw.Rendition{
+			Settings: tw.Settings{
+				Separators: tw.Separators{BetweenRows: tw.On},
+			},
+		}),
+	)
 
-	table.SetHeader([]string{"CommonNetworkRelativeLink", "Value"})
+	table.Header([]string{"CommonNetworkRelativeLink", "Value"})
 
 	table.Append([]string{"Size", uint32TableStr(c.Size)})
 	table.Append([]string{"Flags", flags.String()})

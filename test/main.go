@@ -15,6 +15,11 @@ func main() {
 	}
 	defer fi.Close()
 
+	fileInfo, err := fi.Stat()
+	if err != nil {
+		panic(err)
+	}
+
 	// // lnk files are small-ish, no reason not to read everything at once.
 	// // lnkBytes, err := ioutil.ReadAll(fi)
 	// // if err != nil {
@@ -61,7 +66,7 @@ func main() {
 	// _ = edb
 	// // fmt.Println(lnk.StructToJSON(edb, true))
 
-	ln, err := lnk.Read(fi)
+	ln, err := lnk.Read(fi, uint64(fileInfo.Size()))
 	if err != nil {
 		panic(err)
 	}

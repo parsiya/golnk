@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 // VolID is VolumeID (section 2.3.1. of [SHLLINK]).
@@ -123,11 +124,16 @@ func (v VolID) String() string {
 
 	var sb strings.Builder
 
-	table := tablewriter.NewWriter(&sb)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetRowLine(true)
+	table := tablewriter.NewTable(&sb,
+		tablewriter.WithRowAlignment(tw.AlignLeft),
+		tablewriter.WithRendition(tw.Rendition{
+			Settings: tw.Settings{
+				Separators: tw.Separators{BetweenRows: tw.On},
+			},
+		}),
+	)
 
-	table.SetHeader([]string{"VolumeID", "Value"})
+	table.Header([]string{"VolumeID", "Value"})
 
 	table.Append([]string{"Size", uint32TableStr(v.Size)})
 	table.Append([]string{"DriveType", v.DriveType})
