@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 // LinkInfoSection represents the LinkInfo structure. Section 2.3 of [MS-SHLLINK].
@@ -266,11 +267,16 @@ func (li LinkInfoSection) String() string {
 		flags.WriteString("\n")
 	}
 
-	table := tablewriter.NewWriter(&sb)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetRowLine(true)
+	table := tablewriter.NewTable(&sb,
+		tablewriter.WithRowAlignment(tw.AlignLeft),
+		tablewriter.WithRendition(tw.Rendition{
+			Settings: tw.Settings{
+				Separators: tw.Separators{BetweenRows: tw.On},
+			},
+		}),
+	)
 
-	table.SetHeader([]string{"LinkInfo", "Value"})
+	table.Header([]string{"LinkInfo", "Value"})
 
 	table.Append([]string{"Size", uint32TableStr(li.Size)})
 	table.Append([]string{"HeaderSize", uint32TableStr(li.LinkInfoHeaderSize)})
