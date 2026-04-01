@@ -45,7 +45,7 @@ func Read(r io.Reader, maxSize uint64) (f LnkFile, err error) {
 		return f, fmt.Errorf("golnk.Read: parse StringData - %s", err.Error())
 	}
 
-	f.DataBlocks, err = DataBlock(r)
+	f.DataBlocks, err = DataBlock(r, maxSize)
 	if err != nil {
 		return f, fmt.Errorf("golnk.Read: parse ExtraDataBlock - %s", err.Error())
 	}

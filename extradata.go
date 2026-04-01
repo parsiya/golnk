@@ -34,7 +34,7 @@ type ExtraDataBlock struct {
 }
 
 // DataBlock reads and populates an ExtraData.
-func DataBlock(r io.Reader) (extra ExtraDataSection, err error) {
+func DataBlock(r io.Reader, maxSize uint64) (extra ExtraDataSection, err error) {
 
 	var db ExtraDataBlock
 	for {
@@ -62,7 +62,13 @@ func DataBlock(r io.Reader) (extra ExtraDataSection, err error) {
 		// fmt.Println("Type:", db.Type)
 
 		// Read the rest of the data. Size-8.
-		data := make([]byte, db.Size-8)
+		blockDataSize := db.Size - 8
+		// Check if data exceeds known limits to avoid large allocations in case of corrupt files
+		if uint64(blockDataSize) > maxSize {
+			return extra, fmt.Errorf("golnk.readDataBlock: invalid computed size got %d; expected a size < %d", blockDataSize, maxSize)
+		}
+
+		data := make([]byte, blockDataSize)
 		err = binary.Read(r, binary.LittleEndian, &data)
 		if err != nil {
 			return extra, fmt.Errorf("golnk.readDataBlock: read data - %s", err.Error())
